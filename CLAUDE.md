@@ -27,6 +27,26 @@ Bij elke nieuwe functie: vraag eerst in welke laag hij hoort.
 - Stand 8 nov 2026: de race rendert (Direct3D 2) en is te besturen met de pijltjestoetsen (game.ini `[INPUT]`: VK-codes, gas = Up). Het spel heeft geen eigen framelimiter en koppelt de simulatie aan het frame: `main.cpp` zet `max_fps = 60`; `VRACER_MAX_FPS=0` haalt de limiet weg. Scripted invoer: `VRACER_TEST_INPUT=bestand` (SwARc `user32_window.cpp`, o.a. `<t> key Up 10`), screenshots: `VRACER_SHOT_EVERY=n VRACER_SHOT_DIR=...`.
 - De 12 "unimplemented sites" in de lift zijn tekst die als code werd aangezien (adressen zijn ASCII), niet uitgevoerd.
 
+## Menu (vracer-menu)
+- Native vervanger van `MenuData/Menu.exe` (Delphi 5). Leest bij elke start de formulieren (DFM), knopplaatjes, lettertypes (Impact/Arial zitten ín Menu.exe) en klanken uit de eigen CD; teksten uit `MenuCaps.ini`, `menu.ini` en `static.ini`. Er staat geen speldata in git.
+- Bouwen: `cmake --build --preset release --target vracer-menu` (licht; `vracer` apart bouwen). Starten: `"Vakantie Racer.app"` (`tools/make_app.sh`) of `XDG_DATA_HOME=$PWD/userdata out/build/release/vracer-menu --game-dir $PWD/iso/data --mods $PWD/mods/menu`. Opties: `--no-intro`, `--race BIN` (ander racebestand, bv. een nep-race voor tests), `--script FILE` (geautomatiseerde invoer: regels `<ms> click <component>`, `key <naam>`, `type <tekst>`, `shot <png>`, `quit`), `--shot FILE` (F12). `./run.sh` start de race nog steeds direct.
+- Lagen in `src/menu/`: `engine/` = algemeen Davilex-Delphi-menu (DFM-lader, TDaviGraphicButton, MenuCaps, assets/mods, video, SDL3-venster) en bruikbaar voor Europe Racer; `launcher/` = RED-handshake (game.ini schrijven in SwARc's overlay, race starten, uitslag lezen); `vracer/` = per origineel formulier een scherm (`screen_*.cpp`, adressen uit Menu.exe in de commentaren) plus `race.cpp` (welke game.ini-sleutels, uitslag, kwalificatie).
+- Spelers staan in `userdata/vracer/menu_players.ini` (eigen formaat; het origineel had binaire `SaveGame<N>.rcr`). Ronderecords in de overlay-kopie van `MenuData/menu.ini` `[HIGHSCORES]`.
+- Niet (of anders) dan het origineel: Help-knoppen verborgen zoals op de CD (geen `VRacer.hlp` in MenuData); "Gevorderd" (TfrmDisplaySettings: videokaart/resolutie/filtering) doet niets; volumes gaan niet naar `raser.ini` (omrekening `g_0046A1F0` nog niet ontcijferd); de wachtstand van een toetsknop toont "?"; het startsignaal van de MCI-video's en de bulb-animatie zijn nagebouwd uit de beschrijving, niet naast het origineel vergeleken.
+### Menu-mods (`mods/menu/`, in git)
+- Een bestand met dezelfde naam als in `MenuData` (hoofdletters maken niet uit) vervangt het origineel: `QR_JOH.bmp`, `menumsc.wav`, `MenuFont1.ttf`, knopstanden als `defBtn.UpLink.bmp`.
+- `static.ini`, `menu.ini` en `MenuCaps.ini` in `mods/menu/` worden sleutel voor sleutel óver het origineel gelegd: alleen de sleutels die je wilt wijzigen of toevoegen. Een karakter is een `[charN]`-sectie, een etappe een `[TRACKn]` (plus `[GENERAL] TRACKCOUNT`), een prijs een `[wofprizes]`-regel: geen code nodig.
+- `layout/<Formulierklasse>.ini` verplaatst, verbergt of voegt componenten toe; één sectie per component (bestaand of nieuw), sleutels `Class`, `Left`, `Top`, `Width`, `Height`, `Visible`, `Enabled`, `Caption`, `Definition`, `Picture`, `Font`, `FontSize`, `FontColor`, `WordWrap`, `Alignment`, `TabOrder`, `OnClick`. Voorbeeld `mods/menu/layout/TfrmQuickRace.ini`:
+  ```ini
+  [btnTrailer]
+  Class=TDaviGraphicButton
+  Definition=Data.defNextYelBtn
+  Left=277
+  Top=322
+  Caption=Caravan
+  ```
+  De knop verschijnt dan op het Quick Race-scherm; wat hij doet staat in `QuickRaceScreen::OnClick` (op naam), en extra game.ini-sleutels zet je met `game.launcher.SetInt(...)` of een `launcher.before_race`-functie.
+
 ## Speldata
 - `run.sh` zet `XDG_DATA_HOME=userdata/`: wat de game schrijft (eigen kopie van `game.ini`, saves, crashrapporten) staat in `userdata/vracer/` in dit project, niet in Application Support (zijn wens). Zodra de game een bestand heeft geschreven, leest hij voortaan die kopie: test `car=5/6/7` dus in `userdata/vracer/install/game.ini`. Alleen-lezen bestanden (`Car_cfg.ini`) pas je in `iso/data` aan.
 
