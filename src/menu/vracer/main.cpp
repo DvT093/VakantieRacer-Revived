@@ -3,7 +3,7 @@
 // time from the user's own CD; races run through the native vracer binary.
 //
 //   vracer-menu --game-dir DIR [--mods DIR] [--race BIN] [--script FILE]
-//               [--shot FILE]
+//               [--shot FILE] [--no-intro]
 //
 // DIR is the CD's data folder (spel.dat, MenuData/). --mods is the menu mod
 // folder (default: mods/menu next to the project), --race the race binary
@@ -24,6 +24,7 @@
 
 int main(int argc, char** argv) {
   std::string game_dir, mods_dir, race_bin, script, shot;
+  bool intro = true;
   if (const char* e = std::getenv("VRACER_GAME_DIR")) game_dir = e;
   for (int i = 1; i < argc; i++) {
     auto next = [&](std::string* out) {
@@ -34,8 +35,9 @@ int main(int argc, char** argv) {
     else if (!std::strcmp(argv[i], "--race")) next(&race_bin);
     else if (!std::strcmp(argv[i], "--script")) next(&script);
     else if (!std::strcmp(argv[i], "--shot")) next(&shot);
+    else if (!std::strcmp(argv[i], "--no-intro")) intro = false;
     else {
-      std::fprintf(stderr, "usage: %s --game-dir DIR [--mods DIR] [--race BIN] [--script FILE] [--shot FILE]\n",
+      std::fprintf(stderr, "usage: %s --game-dir DIR [--mods DIR] [--race BIN] [--script FILE] [--shot FILE] [--no-intro]\n",
                    argv[0]);
       return 2;
     }
@@ -100,6 +102,6 @@ int main(int argc, char** argv) {
       game.embedded[n] = davi::LoadWav(davi::SizedBytes(*w->Prop("WavFileData")));
   app.on_button_down = [&](davi::Widget&) { game.Sound("__wavBtnDown"); };
   if (!script.empty()) app.LoadScript(script);
-  vr::Start(game);
+  vr::Start(game, intro);
   return app.Run();
 }

@@ -31,6 +31,10 @@ void WriteRaceKeys(Game& g, int char_index, int track_index) {
   L.SetInt("GFX OPTIONS", "alpha_blending", p.alpha);
   L.SetInt("OPTIONS", "waitvbl", p.waitvbl);
   L.SetInt("OPTIONS", "filter", p.bilinear ? 2 : 0);
+  // raser.ini [PROGRAM] RESOLUTION (Options: Low/Medium/High, 3D card).
+  // The original also wrote [SOUND] volumes through a conversion that is
+  // not decoded yet (g_0046A1F0), so the race keeps its own volumes.
+  L.SetIn("raser.ini", "PROGRAM", "RESOLUTION", std::to_string(p.resolution));
   bool bonus = char_index < 0 || char_index >= int(g.chars.size());
   int car = bonus ? kBonusCar : g.chars[char_index].indexingame;
   if (g.mode == 1) {

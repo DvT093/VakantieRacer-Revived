@@ -209,6 +209,23 @@ void WinRaceScreen::OnShow() {
   form.SetCaption("lblTextBlock", c.winracetext);
   game.Voice(c.outrowav);
   game.app.SetFocus(form.Get("btnOk"));
+  std::string avi = game.assets.Find(c.video);
+  Player* p = game.Cur();
+  if (!avi.empty()) movie_.Open(avi, &game.app.audio, (p ? p->fx_volume : 75) / 100.0f);
+}
+
+void WinRaceScreen::OnHide() { movie_.Close(); }
+
+// medWinnerNotify: the movie loops until OK.
+void WinRaceScreen::Tick(double) {
+  if (movie_.IsOpen() && !movie_.Update()) movie_.Restart();
+}
+
+void WinRaceScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
+  davi::Widget* pnl = form.Get("pnlMovie");
+  if (!pnl || !movie_.Frame()) return;
+  SDL_Rect r{ox + pnl->r.x, oy + pnl->r.y, pnl->r.w, pnl->r.h};
+  SDL_BlitSurfaceScaled(movie_.Frame(), nullptr, canvas, &r, SDL_SCALEMODE_LINEAR);
 }
 
 void WinRaceScreen::OnClick(davi::Widget& w) {

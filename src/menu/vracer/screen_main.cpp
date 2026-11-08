@@ -29,7 +29,24 @@ void AskForNewPlayer(Game& g, std::function<void()> done) {
   (*ask)();
 }
 
-void Start(Game& g) {
+// TfrmMain.FormActivate on a fresh start (0x48dc18): the intro when the
+// file of menu.ini INTROAVI is there, then BackFromIntro.
+void Start(Game& g, bool intro) {
+  if (intro) {
+    // INTROAVI=DATA\INTRO1.MPG is relative to the CD root.
+    std::string cd = g.launcher.install().game_dir;
+    cd = cd.substr(0, cd.find_last_of('/'));
+    std::string path = davi::FindNoCase(cd, g.menu.Get("GENERAL", "INTROAVI", "DATA\\INTRO1.MPG"));
+    auto* scr = g.Screen<IntroScreen>();
+    if (!path.empty() && scr->Play(path)) {
+      g.Goto(scr);
+      return;
+    }
+  }
+  BackFromIntro(g);
+}
+
+void BackFromIntro(Game& g) {
   g.StartMusic();
   if (g.Cur()) {
     g.Goto(g.Screen<MainScreen>());
@@ -39,6 +56,42 @@ void Start(Game& g) {
     g.StartMusic();
     g.Goto(g.Screen<MainScreen>());
   });
+}
+
+IntroScreen::IntroScreen(Game& g) : VrScreen(g, "TfrmIntro") {
+  // TfrmIntro.FormMouseDown: any click skips.
+  if (davi::Widget* bg = form.Get("imgBackGround")) bg->onclick = "FormMouseDown";
+}
+
+bool IntroScreen::Play(const std::string& path) {
+  done_ = false;
+  Player* p = game.Cur();
+  return movie_.Open(path, &game.app.audio, (p ? p->fx_volume : 75) / 100.0f);
+}
+
+void IntroScreen::Done() {
+  if (done_) return;
+  done_ = true;
+  movie_.Close();
+  BackFromIntro(game);
+}
+
+void IntroScreen::OnClick(davi::Widget&) { Done(); }
+
+bool IntroScreen::OnKey(SDL_Keycode) {
+  Done();
+  return true;
+}
+
+void IntroScreen::Tick(double) {
+  if (!done_ && !movie_.Update()) Done();
+}
+
+// Full screen (MCI on the whole 800x600 form), black around it.
+void IntroScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
+  SDL_Rect r{ox, oy, form.w, form.h};
+  SDL_FillSurfaceRect(canvas, &r, 0);
+  if (SDL_Surface* f = movie_.Frame()) SDL_BlitSurfaceScaled(f, nullptr, canvas, &r, SDL_SCALEMODE_LINEAR);
 }
 
 MainScreen::MainScreen(Game& g) : VrScreen(g, "TfrmMainScreen") {}
@@ -61,7 +114,7 @@ void MainScreen::OnClick(davi::Widget& w) {
   } else if (w.name == "btnPlayer") {
     game.Goto(game.Screen<PlayerScreen>());
   } else if (w.name == "btnOptions") {
-    // TfrmOptions: milestone 3.
+    game.Goto(game.Screen<OptionsScreen>());
   } else if (w.name == "imgCar") {
     // A small easter egg on the main screen (0x485b94).
     if (game.Cur() && game.Cur()->name == "Frits") {

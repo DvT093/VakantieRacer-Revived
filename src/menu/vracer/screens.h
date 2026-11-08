@@ -5,12 +5,15 @@
 #include <functional>
 #include <string>
 
+#include "engine/video.h"
 #include "vracer/game.h"
 
 namespace vr {
 
-// First screen after start (player check, then the main menu).
-void Start(Game& g);
+// First screen after start: the intro movie (when `intro`), then the
+// player check and the main menu.
+void Start(Game& g, bool intro);
+void BackFromIntro(Game& g);
 // Stat dots: `value` of [BITMAPS] 0, then -delta of 1 or +delta of 2, 13 px apart.
 void DrawDots(Game& g, SDL_Surface* canvas, int x, int y, int value, int delta);
 // "%s" substitution as in Delphi's Format for the menu strings.
@@ -161,7 +164,28 @@ class WinRaceScreen : public VrScreen {  // TfrmWinRace (WINRACE.bmp)
  public:
   explicit WinRaceScreen(Game& g);
   void OnShow() override;
+  void OnHide() override;
   void OnClick(davi::Widget& w) override;
+  void Tick(double dt) override;
+  void Paint(SDL_Surface* canvas, int ox, int oy) override;
+
+ private:
+  davi::Video movie_;  // the character's AVI, looped in pnlMovie
+};
+
+class IntroScreen : public VrScreen {  // TfrmIntro: menu.ini INTROAVI
+ public:
+  explicit IntroScreen(Game& g);
+  bool Play(const std::string& path);
+  void OnClick(davi::Widget& w) override;
+  bool OnKey(SDL_Keycode k) override;
+  void Tick(double dt) override;
+  void Paint(SDL_Surface* canvas, int ox, int oy) override;
+
+ private:
+  void Done();
+  davi::Video movie_;
+  bool done_ = false;
 };
 
 class Ferrari2Popup : public VrScreen {  // TfrmFerrari2 (POP_GWIN.bmp)
@@ -182,6 +206,42 @@ class PlayerScreen : public VrScreen {  // TfrmPlayer (PLAYER.bmp)
   std::vector<int> others_;  // player indexes on btn1..4
   std::vector<Player> backup_;
   int backup_current_ = -1;
+};
+
+// Options (screen_options.cpp).
+class OptionsScreen : public VrScreen {  // TfrmOptions (OPTIONS.bmp)
+ public:
+  explicit OptionsScreen(Game& g);
+  void OnShow() override;
+  void OnClick(davi::Widget& w) override;
+
+ private:
+  void Video();
+  void Control(int device);
+  Player temp_;          // edited copy, stored on OK
+  davi::Sound sample_;   // wavIrritatingAsHell ("trin.wav")
+};
+
+class KeySettingsPopup : public VrScreen {  // TfrmKeySettings (POP_KEYS)
+ public:
+  explicit KeySettingsPopup(Game& g);
+  void Edit(const int* keys);
+  void OnShow() override;
+  void OnClick(davi::Widget& w) override;
+  bool OnKey(SDL_Keycode k) override;
+  int keys[7] = {};  // up down left right turbo handbrake horn
+
+ private:
+  void Captions();
+  int waiting_ = -1;
+};
+
+class SensitivityPopup : public VrScreen {  // TfrmJoystickSettings / TfrmWheelSettings
+ public:
+  explicit SensitivityPopup(Game& g);
+  void Edit(bool wheel, int value);
+  void OnClick(davi::Widget& w) override;
+  int value = 50;
 };
 
 // TfrmMenuDialog: message box. Buttons: 1 OK, 2 Annuleer, 4 Ja, 8 Nee.
