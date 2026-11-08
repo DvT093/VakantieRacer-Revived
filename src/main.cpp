@@ -4,6 +4,8 @@
 //
 // DIR is the game's data folder from the user's own CD (the folder with
 // spel.dat, rcs.IMG, game.ini). Defaults to $VRACER_GAME_DIR.
+// The disc itself (the game checks for it) is the folder above DIR, the
+// root of the extracted CD; override with --cd-dir.
 // Set VRACER_TRACE=1 to log every HLE call.
 
 #include <sys/stat.h>
@@ -17,11 +19,13 @@
 #include "win32/process.h"
 
 int main(int argc, char** argv) {
-  std::string game_dir, game_args;
+  std::string game_dir, cd_dir, game_args;
   if (const char* e = std::getenv("VRACER_GAME_DIR")) game_dir = e;
   for (int i = 1; i < argc; i++) {
     if (!std::strcmp(argv[i], "--game-dir") && i + 1 < argc) {
       game_dir = argv[++i];
+    } else if (!std::strcmp(argv[i], "--cd-dir") && i + 1 < argc) {
+      cd_dir = argv[++i];
     } else if (!std::strcmp(argv[i], "--")) {
       for (i++; i < argc; i++) {
         if (!game_args.empty()) game_args += ' ';
@@ -50,5 +54,8 @@ int main(int argc, char** argv) {
   game.id = "vracer";
   game.guest_dir = "C:\\Vakantie Racer\\data";
   game.exe_name = "spel.dat";
+  // The original disc (volume label VRACER) in drive D:.
+  if (cd_dir.empty()) cd_dir = game_dir.substr(0, game_dir.find_last_of('/'));
+  game.cd_drives = {{'D', cd_dir, "VRACER"}};
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
