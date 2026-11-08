@@ -168,6 +168,15 @@ void Audio::StopMusic() {
   music_snd_ = nullptr;
 }
 
+SDL_AudioStream* Audio::OpenStream(const SDL_AudioSpec& spec, float gain) {
+  if (!dev_) return nullptr;
+  SDL_AudioStream* st = SDL_CreateAudioStream(&spec, nullptr);
+  if (!st) return nullptr;
+  SDL_SetAudioStreamGain(st, gain);
+  SDL_BindAudioStream(dev_, st);
+  return st;
+}
+
 void Audio::Pause(bool paused) {
   if (!dev_) return;
   if (paused) SDL_PauseAudioDevice(dev_);

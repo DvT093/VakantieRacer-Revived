@@ -34,7 +34,7 @@ struct FontSpec {
 };
 
 struct Widget {
-  enum Kind { kOther, kImage, kLabel, kButton, kCheckBox, kRadio, kEdit };
+  enum Kind { kOther, kImage, kLabel, kButton, kCheckBox, kRadio, kEdit, kSlider };
   Kind kind = kOther;
   std::string cls, name;
   SDL_Rect r{0, 0, 0, 0};
@@ -62,6 +62,8 @@ struct Widget {
   bool checked = false;  // check boxes / radio buttons
   int group = 0;
   std::string onclick;   // DFM OnClick handler name
+  // Sliders (TDaviGraphicSlider): picture = track, def = needle.
+  int min = 0, max = 100, pos = 0, margin = 0;
   Widget() = default;
   Widget(const Widget&) = delete;
   Widget& operator=(const Widget&) = delete;

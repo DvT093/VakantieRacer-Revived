@@ -155,7 +155,7 @@ Widget* App::HitTest(int x, int y) {
   for (auto it = s->form.widgets.rbegin(); it != s->form.widgets.rend(); ++it) {
     Widget* w = it->get();
     if (!w->visible) continue;
-    bool clickable = w->kind == Widget::kButton || w->kind == Widget::kCheckBox ||
+    bool clickable = w->kind == Widget::kButton || w->kind == Widget::kCheckBox || w->kind == Widget::kSlider ||
                      w->kind == Widget::kRadio || w->kind == Widget::kEdit || !w->onclick.empty();
     if (!clickable) continue;
     if (x >= w->r.x && x < w->r.x + w->r.w && y >= w->r.y && y < w->r.y + w->r.h) return w->enabled ? w : nullptr;
@@ -261,6 +261,16 @@ void App::DrawForm(Screen& s, int ox, int oy) {
         }
         break;
       }
+      case Widget::kSlider: {
+        if (w.picture) SDL_BlitSurface(w.picture, nullptr, canvas_, &r);
+        SDL_Surface* n = w.def ? w.def->Get(GraphicDef::kUp) : nullptr;
+        if (n && w.max > w.min) {
+          int span = w.r.w - 2 * w.margin - n->w;
+          SDL_Rect d{r.x + w.margin + (w.pos - w.min) * span / (w.max - w.min), r.y + (w.r.h - n->h) / 2, n->w, n->h};
+          SDL_BlitSurface(n, nullptr, canvas_, &d);
+        }
+        break;
+      }
       default:
         break;
     }
@@ -361,6 +371,24 @@ int App::Run() {
           float fy = e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.y : e.button.y;
           Widget* w = HitTest(int(fx), int(fy));
           hover_ = w;
+          // Sliders follow the mouse while the button is held.
+          Widget* sl = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? w : pressed_;
+          if (sl && sl->kind == Widget::kSlider && t &&
+              (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || (e.type == SDL_EVENT_MOUSE_MOTION && (e.motion.state & SDL_BUTTON_LMASK)))) {
+            int ox, oy;
+            Origin(*t, &ox, &oy);
+            SDL_Surface* n = sl->def ? sl->def->Get(GraphicDef::kUp) : nullptr;
+            int nw = n ? n->w : 0, span = std::max(1, sl->r.w - 2 * sl->margin - nw);
+            int v = sl->min + (int(fx) - ox - sl->r.x - sl->margin - nw / 2) * (sl->max - sl->min) / span;
+            v = std::max(sl->min, std::min(sl->max, v));
+            if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) pressed_ = sl;
+            if (v != sl->pos) {
+              sl->pos = v;
+              t->OnClick(*sl);
+            }
+            if (e.type == SDL_EVENT_MOUSE_MOTION) break;
+            if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) break;
+          }
           if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN && e.button.button == SDL_BUTTON_LEFT) {
             pressed_ = w;
             if (w && (w->kind == Widget::kButton || w->kind == Widget::kEdit || w->kind == Widget::kCheckBox ||

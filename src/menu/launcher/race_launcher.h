@@ -57,6 +57,8 @@ class RaceLauncher {
   // Values to write before the next race: (section, key, value).
   void Set(const std::string& sec, const std::string& key, const std::string& value);
   void SetInt(const std::string& sec, const std::string& key, int value);
+  // Values for another ini of the install (e.g. "raser.ini").
+  void SetIn(const std::string& file, const std::string& sec, const std::string& key, const std::string& value);
   // Extra writers (mods): called after the flow's own values, before saving.
   std::vector<std::function<void(davi::IniFile&)>> before_race;
 
@@ -69,7 +71,7 @@ class RaceLauncher {
  private:
   Install install_;
   std::vector<std::string> argv_;
-  struct Pending { std::string sec, key, value; };
+  struct Pending { std::string sec, key, value, file = "game.ini"; };
   std::vector<Pending> pending_;
 };
 

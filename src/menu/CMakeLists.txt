@@ -5,13 +5,15 @@
 #   vracer/   Vakantie Racer screens and flow
 find_package(SDL3 REQUIRED CONFIG)
 find_package(Freetype REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MENU_FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libswscale libswresample)
 
 add_library(davi_menu STATIC
   engine/dfm.cpp engine/ini.cpp engine/text.cpp engine/assets.cpp
-  engine/form.cpp engine/app.cpp
+  engine/form.cpp engine/app.cpp engine/video.cpp
   launcher/race_launcher.cpp)
 target_include_directories(davi_menu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(davi_menu PUBLIC SDL3::SDL3 Freetype::Freetype)
+target_link_libraries(davi_menu PUBLIC SDL3::SDL3 Freetype::Freetype PkgConfig::MENU_FFMPEG)
 
 file(GLOB VRACER_MENU_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vracer/*.cpp)
 add_executable(vracer-menu ${VRACER_MENU_SOURCES})

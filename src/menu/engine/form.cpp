@@ -92,7 +92,7 @@ SDL_Color DelphiColor(const Value& v, SDL_Color def) {
   static const std::map<std::string, long> named = {
       {"clBlack", 0x000000}, {"clWhite", 0xFFFFFF}, {"clSilver", 0xC0C0C0}, {"clGray", 0x808080},
       {"clRed", 0x0000FF},   {"clLime", 0x00FF00},  {"clBlue", 0xFF0000},   {"clYellow", 0x00FFFF},
-      {"clNavy", 0x800000},  {"clMaroon", 0x000080}, {"clWindowText", 0x000000}, {"clWindow", 0xFFFFFF}, {"clBtnFace", 0xC0C0C0}};
+      {"clNavy", 0x800000},  {"clMaroon", 0x000080}, {"clWindowText", 0x000000}, {"clWindow", 0xFFFFFF}, {"clBtnFace", 0xC0C0C0}, {"clFuchsia", 0xFF00FF}};
   auto it = named.find(v.s);
   return it == named.end() ? def : ColorRef(it->second);
 }
@@ -146,6 +146,11 @@ void Form::Add(Skin& skin, const Component& c, int ox, int oy) {
     w->center = c.Bool("Center");
     w->pic_transparent = c.Bool("Transparent");
     w->autosize = c.Bool("AutoSize");
+    if (const Value* tc = c.Prop("TransparentColor")) {  // TDaviImage: always keyed
+      SDL_Color k = DelphiColor(*tc, SDL_Color{255, 0, 255, 255});
+      w->pic_transparent = true;
+      w->key_rgb = (k.r << 16) | (k.g << 8) | k.b;
+    }
     std::vector<uint8_t> bmp;
     if (const Value* p = c.Prop("Picture.Data")) bmp = PictureBytes(*p);
     if (const Value* p = c.Prop("LinkedDIB.DIB"); p && bmp.empty()) bmp = p->bytes;
@@ -154,6 +159,19 @@ void Form::Add(Skin& skin, const Component& c, int ox, int oy) {
       w->picture = s;
       if (w->autosize || w->r.w == 0) w->r.w = s->w, w->r.h = s->h;
     }
+  } else if (c.cls == "TDaviGraphicSlider") {
+    w->kind = Widget::kSlider;
+    w->min = c.Int("Min", 0);
+    w->max = c.Int("Max", 100);
+    w->pos = c.Int("Position", 0);
+    w->margin = c.Int("MarginHorz", 0);
+    w->onclick = c.Str("OnChange");
+    if (const Value* p = c.Prop("BackImage.Data"))
+      if (SDL_Surface* s = LoadBmp(SizedBytes(*p))) {
+        skin.owned_bmps[cls].push_back(s);
+        w->picture = s;
+      }
+    w->def = skin.Def(cls, c.Str("Definition"));
   } else if (c.cls == "TLabel") {
     w->kind = Widget::kLabel;
   } else if (c.cls == "TEdit") {

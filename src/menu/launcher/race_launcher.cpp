@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 
 #include <cstdlib>
+#include <map>
 
 #include "engine/app.h"
 #include "engine/assets.h"
@@ -51,12 +52,18 @@ davi::IniFile RaceLauncher::LoadGameIni() const {
 }
 
 void RaceLauncher::Set(const std::string& sec, const std::string& key, const std::string& value) {
+  SetIn("game.ini", sec, key, value);
+}
+
+void RaceLauncher::SetIn(const std::string& file, const std::string& sec, const std::string& key,
+                         const std::string& value) {
   for (auto& p : pending_)
-    if (davi::Lower(p.sec) == davi::Lower(sec) && davi::Lower(p.key) == davi::Lower(key)) {
+    if (davi::Lower(p.file) == davi::Lower(file) && davi::Lower(p.sec) == davi::Lower(sec) &&
+        davi::Lower(p.key) == davi::Lower(key)) {
       p.value = value;
       return;
     }
-  pending_.push_back({sec, key, value});
+  pending_.push_back({sec, key, value, file});
 }
 
 void RaceLauncher::SetInt(const std::string& sec, const std::string& key, int value) {
@@ -85,11 +92,24 @@ RaceResult RaceLauncher::ReadResult() const {
 
 RaceResult RaceLauncher::Run(davi::App& app) {
   davi::IniFile ini = LoadGameIni();
-  for (auto& p : pending_) ini.Set(p.sec, p.key, p.value);
+  std::map<std::string, davi::IniFile> others;
+  for (auto& p : pending_) {
+    if (davi::Lower(p.file) == "game.ini") {
+      ini.Set(p.sec, p.key, p.value);
+      continue;
+    }
+    auto it = others.find(davi::Lower(p.file));
+    if (it == others.end()) {
+      it = others.emplace(davi::Lower(p.file), davi::IniFile()).first;
+      it->second.Load(install_.ReadPath(p.file));
+    }
+    it->second.Set(p.sec, p.key, p.value);
+  }
   pending_.clear();
   for (auto& f : before_race) f(ini);
   std::string out = install_.WritePath("game.ini");
   if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
+  for (auto& [file, other] : others) other.Save(install_.WritePath(file));
   int st = app.RunChild(argv_);
   RaceResult r = ReadResult();
   r.started = st >= 0;

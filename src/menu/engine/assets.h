@@ -56,6 +56,8 @@ class Audio {
   void SetMusicGain(float gain);
   void StopMusic();
   void Pause(bool paused);  // while the race runs
+  // A raw stream on the device (owned by the caller), e.g. for video sound.
+  SDL_AudioStream* OpenStream(const SDL_AudioSpec& spec, float gain);
   void Update();            // refills the music loop, frees finished sounds
 
  private:
