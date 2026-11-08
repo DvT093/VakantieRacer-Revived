@@ -1,0 +1,16 @@
+# Originele game-data (copyright Davilex / Nationaal Archief) - nooit committen
+iso/
+# Ghidra-projectdatabase (groot, lokaal te regenereren)
+re/ghidra/
+build/
+.DS_Store
+out/
+generated/
+# Afgeleid van spel.dat (opnieuw te maken met pe_symbols.py + Ghidra-export)
+symbols/
+*.log
+# Speldata van de port (kopie game.ini, saves, crashes)
+userdata/
+# Gedecompileerde gamecode (afgeleid van spel.dat)
+re/out_*.txt
+__pycache__/
