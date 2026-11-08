@@ -1,0 +1,10 @@
+# Jumptables die de Ghidra-export (symbols/jumptables.tsv) zonder doelen laat.
+# lift.sh zet deze doelen in symbols/jumptables.tsv voor recomp_lift draait.
+# jmp-adres<TAB>doelen (komma-gescheiden), zelfde vorm als jumptables.tsv.
+#
+# 0040EC00: jmp [0040EFE0 + edx*4], index uit bytetabel 0040EFEC (0..2).
+0040EC00	0040EC7A,0040EC07
+# 0047A26F: jmp [0047A39C + esi*4], 4 ingangen (tot de volgende tabel).
+0047A26F	0047A276,0047A283,0047A28F,0047A29B
+# 0047A2C8: jmp [0047A3AC + esi*4], 4 ingangen.
+0047A2C8	0047A2CF,0047A2EF,0047A30F,0047A32F
