@@ -14,3 +14,5 @@ userdata/
 # Gedecompileerde gamecode (afgeleid van spel.dat)
 re/out_*.txt
 __pycache__/
+Vakantie Racer.app/
+app.log
