@@ -57,5 +57,8 @@ int main(int argc, char** argv) {
   // The original disc (volume label VRACER) in drive D:.
   if (cd_dir.empty()) cd_dir = game_dir.substr(0, game_dir.find_last_of('/'));
   game.cd_drives = {{'D', cd_dir, "VRACER"}};
+  // The game has no frame limiter and the player's car speeds up per
+  // frame: 60 fps as on the hardware of its day. VRACER_MAX_FPS=0 uncaps.
+  game.max_fps = 60;
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
