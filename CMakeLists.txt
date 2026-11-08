@@ -24,3 +24,6 @@ set(VRACER_GAME_EXE "" CACHE FILEPATH "spel.dat for EXE-derived tests")
 recomp_add_lift_tests(EXE "${VRACER_GAME_EXE}"
   SYMBOLS "${CMAKE_CURRENT_SOURCE_DIR}/symbols"
   MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/lifter.manifest")
+
+# Native menu (replaces MenuData/Menu.exe), see src/menu/.
+add_subdirectory(src/menu)
