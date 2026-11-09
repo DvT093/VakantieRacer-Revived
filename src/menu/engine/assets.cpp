@@ -7,6 +7,7 @@
 #include <iterator>
 
 #include "engine/dfm.h"  // Lower
+#include "engine/hd.h"
 
 namespace davi {
 
@@ -86,6 +87,9 @@ SDL_Surface* Assets::Bitmap(const std::string& name) {
   std::string p = Find(n);
   if (!p.empty()) s = LoadBmp(ReadFile(p));
   if (!s) SDL_Log("menu: bitmap not found: %s", n.c_str());
+  // HD pictures go by the file name without its extension ("mainscre").
+  std::string base = n.substr(n.find_last_of("/\\") + 1);
+  NamePicture(s, base.substr(0, base.rfind('.')));
   bmps_[key] = s;
   return s;
 }

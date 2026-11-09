@@ -30,12 +30,19 @@ class Font {
   void DrawLine(SDL_Surface* dst, int x, int y, const std::string& s, int px, SDL_Color c,
                 const SDL_Rect* clip = nullptr);
 
+  // Scaled drawing (paint.h): sizes in 26.6 pixels (px * 64), any size.
+  float WidthF(const std::string& s, long size26);
+  // One line in colour `c` on transparent (ARGB8888, caller frees); the pen
+  // starts at x = *origin_x, the baseline is at y = *baseline.
+  SDL_Surface* RenderLine(const std::string& s, long size26, SDL_Color c, int* origin_x, int* baseline);
+
  private:
   void SetSize(int px);
+  void SetSize26(long size26);
   std::vector<uint8_t> data_;
   void* lib_ = nullptr;   // FT_Library
   void* face_ = nullptr;  // FT_Face
-  int cur_px_ = 0;
+  long cur_size26_ = 0;
 };
 
 enum class HAlign { kLeft, kCenter, kRight };

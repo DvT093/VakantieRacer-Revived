@@ -171,7 +171,7 @@ void WheelScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
     davi::Widget* w = i == light_ ? on : off;
     if (!w || !w->picture) continue;
     SDL_Rect d{ox + kLights[i].x, oy + kLights[i].y, w->picture->w, w->picture->h};
-    SDL_BlitSurface(w->picture, nullptr, canvas, &d);
+    davi::Blit(canvas, w->picture, nullptr, d);
   }
 }
 

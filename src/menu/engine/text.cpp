@@ -1,9 +1,11 @@
 #include "engine/text.h"
+#include "engine/paint.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_TRUETYPE_TABLES_H
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iterator>
@@ -67,10 +69,66 @@ bool Font::LoadFile(const std::string& path) {
   return Load(std::vector<uint8_t>(std::istreambuf_iterator<char>(f), {}));
 }
 
-void Font::SetSize(int px) {
-  if (px == cur_px_) return;
-  FT_Set_Pixel_Sizes((FT_Face)face_, 0, FT_UInt(px));
-  cur_px_ = px;
+void Font::SetSize(int px) { SetSize26(long(px) * 64); }
+
+void Font::SetSize26(long size26) {
+  if (size26 == cur_size26_) return;
+  // 72 dpi: a "point" is a pixel, so this is the em size in pixels (as
+  // FT_Set_Pixel_Sizes for whole sizes).
+  FT_Set_Char_Size((FT_Face)face_, 0, FT_F26Dot6(size26), 72, 72);
+  cur_size26_ = size26;
+}
+
+float Font::WidthF(const std::string& s, long size26) {
+  if (!face_) return 0;
+  SetSize26(size26);
+  FT_Face f = (FT_Face)face_;
+  long w = 0;
+  for (unsigned char c : s)
+    if (FT_Load_Char(f, Cp1252(c), FT_LOAD_DEFAULT) == 0) w += f->glyph->advance.x;
+  return float(w) / 64.0f;
+}
+
+SDL_Surface* Font::RenderLine(const std::string& s, long size26, SDL_Color c, int* origin_x, int* baseline) {
+  if (!face_) return nullptr;
+  SetSize26(size26);
+  FT_Face f = (FT_Face)face_;
+  // Glyph boxes first (overhangs left of the pen and past the advance).
+  long pen = 0;
+  int x0 = 0, x1 = 1, y0 = 0, y1 = 1;  // relative to pen start / baseline
+  for (unsigned char ch : s) {
+    if (FT_Load_Char(f, Cp1252(ch), FT_LOAD_RENDER) != 0) continue;
+    FT_GlyphSlot g = f->glyph;
+    int gx = int(pen >> 6) + g->bitmap_left;
+    x0 = std::min(x0, gx);
+    x1 = std::max(x1, gx + int(g->bitmap.width));
+    y0 = std::min(y0, -g->bitmap_top);
+    y1 = std::max(y1, -g->bitmap_top + int(g->bitmap.rows));
+    pen += g->advance.x;
+  }
+  x1 = std::max(x1, int((pen + 63) >> 6));
+  SDL_Surface* out = SDL_CreateSurface(x1 - x0, y1 - y0, SDL_PIXELFORMAT_ARGB8888);
+  if (!out) return nullptr;
+  SDL_FillSurfaceRect(out, nullptr, 0);
+  *origin_x = -x0;
+  *baseline = -y0;
+  pen = 0;
+  for (unsigned char ch : s) {
+    if (FT_Load_Char(f, Cp1252(ch), FT_LOAD_RENDER) != 0) continue;
+    FT_GlyphSlot g = f->glyph;
+    int gx = int(pen >> 6) + g->bitmap_left - x0;
+    int gy = -g->bitmap_top - y0;
+    for (unsigned r = 0; r < g->bitmap.rows; r++) {
+      auto* row = (uint32_t*)((uint8_t*)out->pixels + (gy + int(r)) * out->pitch);
+      for (unsigned q = 0; q < g->bitmap.width; q++) {
+        unsigned a = g->bitmap.buffer[r * g->bitmap.pitch + q] * c.a / 255;
+        uint32_t& px = row[gx + int(q)];
+        if (a > (px >> 24)) px = (uint32_t(a) << 24) | (uint32_t(c.r) << 16) | (uint32_t(c.g) << 8) | c.b;
+      }
+    }
+    pen += g->advance.x;
+  }
+  return out;
 }
 
 int Font::Ascent(int px) {
@@ -177,6 +235,11 @@ std::vector<std::string> WrapText(Font& f, const std::string& s, int px, int wid
 
 void DrawText(SDL_Surface* dst, const SDL_Rect& r, const std::string& s, const TextStyle& st) {
   if (!st.font || !st.font->Ok() || s.empty()) return;
+  // On the PaintOver canvas: drawn by the renderer, sharp at any size.
+  if (Painter* p = Painter::Current(); p && p->IsOverlay(dst)) {
+    p->Record([p, r, s, st] { p->Text(r, s, st); });
+    return;
+  }
   auto lines = WrapText(*st.font, s, st.px, r.w, st.wrap);
   int lh = st.font->LineHeight(st.px);
   int total = lh * int(lines.size());

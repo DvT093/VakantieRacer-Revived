@@ -14,6 +14,8 @@
 #endif
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -50,8 +52,8 @@ void Screen::Close(int result) {
 
 App::~App() {
   audio.Shutdown();
-  if (canvas_) SDL_DestroySurface(canvas_);
-  if (tex_) SDL_DestroyTexture(tex_);
+  painter_.Shutdown();
+  if (offscreen_) SDL_DestroyTexture(offscreen_);
   if (ren_) SDL_DestroyRenderer(ren_);
   if (win_) SDL_DestroyWindow(win_);
   SDL_Quit();
@@ -80,11 +82,28 @@ bool App::Init(const AppConfig& cfg) {
   ren_ = SDL_CreateRenderer(win_, nullptr);
   if (!ren_) return false;
   SDL_SetRenderVSync(ren_, 1);
-  SDL_SetRenderLogicalPresentation(ren_, cfg.width, cfg.height, SDL_LOGICAL_PRESENTATION_LETTERBOX);
-  tex_ = SDL_CreateTexture(ren_, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, cfg.width, cfg.height);
-  SDL_SetTextureScaleMode(tex_, SDL_SCALEMODE_LINEAR);
-  canvas_ = SDL_CreateSurface(cfg.width, cfg.height, SDL_PIXELFORMAT_XRGB8888);
-  return tex_ && canvas_;
+  // No logical presentation: the painter draws every widget at the
+  // window's real pixel size (HiDPI), in the 800x600 layout.
+  for (auto& d : cfg.hd_dirs) hd_.AddDir(d);
+  painter_.Init(ren_, cfg.width, cfg.height, &hd_);
+  if (cfg.render_w > 0 && cfg.render_h > 0)
+    offscreen_ = SDL_CreateTexture(ren_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, cfg.render_w, cfg.render_h);
+  int pw = 0, ph = 0;
+  SDL_GetRenderOutputSize(ren_, &pw, &ph);
+  std::fprintf(stderr, "menu: window %dx%d pixels%s, %s\n", pw, ph,
+               offscreen_ ? (" (drawing offscreen at " + std::to_string(cfg.render_w) + "x" +
+                             std::to_string(cfg.render_h) + ")").c_str()
+                          : "",
+               cfg.upgraded ? "upgraded" : "original");
+  return true;
+}
+
+void App::SetUpgraded(bool on, bool notice) {
+  cfg_.upgraded = on;
+  if (notice) {
+    notice_ = on ? "Menu: Upgraded" : "Menu: Origineel";
+    notice_until_ = SDL_GetTicks() + 2000;
+  }
 }
 
 void App::ActivateScreen(Screen* s) {
@@ -188,31 +207,36 @@ void App::Click(Widget* w) {
 }
 
 void App::DrawForm(Screen& s, int ox, int oy) {
+  Painter& p = painter_;
   SDL_Rect clip{ox, oy, s.form.w, s.form.h};
-  SDL_SetSurfaceClipRect(canvas_, &clip);
+  p.SetClip(&clip);
   for (auto& wp : s.form.widgets) {
     Widget& w = *wp;
     if (!w.visible) continue;
     SDL_Rect r{w.r.x + ox, w.r.y + oy, w.r.w, w.r.h};
     switch (w.kind) {
       case Widget::kImage: {
-        SDL_Surface* p = w.Pic();
-        if (!p) break;
+        SDL_Surface* pic = w.Pic();
+        if (!pic) break;
+        int key = -1;
         if (w.pic_transparent && !w.owned) {
           // Delphi TBitmap transparency: the bottom-left pixel's colour,
-          // unless the program set TransparentColor.
-          Uint32 key = w.key_rgb >= 0
-                           ? SDL_MapSurfaceRGB(p, Uint8(w.key_rgb >> 16), Uint8(w.key_rgb >> 8), Uint8(w.key_rgb))
-                           : ((Uint32*)((Uint8*)p->pixels + (p->h - 1) * p->pitch))[0];
-          SDL_SetSurfaceColorKey(p, true, key);
+          // unless the program set TransparentColor. (Also set on the
+          // surface: flow code blits these pictures with their key.)
+          Uint32 k = w.key_rgb >= 0
+                         ? SDL_MapSurfaceRGB(pic, Uint8(w.key_rgb >> 16), Uint8(w.key_rgb >> 8), Uint8(w.key_rgb))
+                         : ((Uint32*)((Uint8*)pic->pixels + (pic->h - 1) * pic->pitch))[0];
+          SDL_SetSurfaceColorKey(pic, true, k);
+          key = w.key_rgb >= 0 ? w.key_rgb : -2;
         }
         if (w.stretch) {
-          SDL_BlitSurfaceScaled(p, nullptr, canvas_, &r, SDL_SCALEMODE_NEAREST);
+          p.Image(pic, nullptr, r, key, w.owned != nullptr);
         } else {
           SDL_Rect dst = r;
-          if (w.center) dst.x += (w.r.w - p->w) / 2, dst.y += (w.r.h - p->h) / 2;
-          SDL_Rect src{0, 0, std::min(p->w, w.r.w ? w.r.w : p->w), std::min(p->h, w.r.h ? w.r.h : p->h)};
-          SDL_BlitSurface(p, &src, canvas_, &dst);
+          if (w.center) dst.x += (w.r.w - pic->w) / 2, dst.y += (w.r.h - pic->h) / 2;
+          SDL_Rect src{0, 0, std::min(pic->w, w.r.w ? w.r.w : pic->w), std::min(pic->h, w.r.h ? w.r.h : pic->h)};
+          dst.w = src.w, dst.h = src.h;
+          p.Image(pic, &src, dst, key, w.owned != nullptr);
         }
         break;
       }
@@ -224,26 +248,26 @@ void App::DrawForm(Screen& s, int ox, int oy) {
           tr.w = std::max(tr.w, st.font->Width(w.caption, w.font.px) + 2);
           tr.h = std::max(tr.h, st.font->LineHeight(w.font.px) * 1);
         }
-        DrawText(canvas_, tr, w.caption, st);
+        p.Text(tr, w.caption, st);
         break;
       }
       case Widget::kEdit: {
         SDL_Rect in = r;
         if (w.border) {
-          SDL_FillSurfaceRect(canvas_, &r, SDL_MapSurfaceRGB(canvas_, 0x80, 0x80, 0x80));
+          p.Fill(r, SDL_Color{0x80, 0x80, 0x80, 255});
           in = {r.x + 1, r.y + 1, r.w - 2, r.h - 2};
         }
-        SDL_FillSurfaceRect(canvas_, &in, SDL_MapSurfaceRGB(canvas_, w.color.r, w.color.g, w.color.b));
+        p.Fill(in, SDL_Color{w.color.r, w.color.g, w.color.b, 255});
         if (w.select_all && focus_ == &w && !w.caption.empty() && skin.GetFont(w.font.font)) {
           SDL_Rect sel{r.x + 3, r.y + 2, skin.GetFont(w.font.font)->Width(w.caption, w.font.px) + 2, r.h - 4};
-          SDL_FillSurfaceRect(canvas_, &sel, SDL_MapSurfaceRGB(canvas_, 0, 0, 0x80));
+          p.Fill(sel, SDL_Color{0, 0, 0x80, 255});
         }
         SDL_Color tc = w.select_all && focus_ == &w ? SDL_Color{255, 255, 255, 255} : w.font.color;
         TextStyle st{skin.GetFont(w.font.font), w.font.px, tc, HAlign::kLeft, VAlign::kCenter, false};
         SDL_Rect tr{r.x + 4, r.y, r.w - 8, r.h};
         std::string t = w.caption;
         if (focus_ == &w && !w.select_all && (SDL_GetTicks() / 500) % 2 == 0) t += "|";
-        DrawText(canvas_, tr, t, st);
+        p.Text(tr, t, st);
         break;
       }
       case Widget::kButton:
@@ -258,7 +282,11 @@ void App::DrawForm(Screen& s, int ox, int oy) {
         if (w.kind != Widget::kButton) state = w.checked ? GraphicDef::kDown : GraphicDef::kUp;
         if (SDL_Surface* img = w.def->Get(state)) {
           SDL_Rect src{0, 0, std::min(img->w, w.r.w), std::min(img->h, w.r.h)};
-          SDL_BlitSurface(img, &src, canvas_, &r);
+          // The state pictures have the background they were drawn for in
+          // them. Upgraded: their HD version has real alpha there (see
+          // tools/upscale_menu.py). A button with Transparent=1 (mod
+          // layout) keys out its bottom-left colour in both looks.
+          p.Image(img, &src, SDL_Rect{r.x, r.y, src.w, src.h}, w.pic_transparent ? -2 : -3);
         }
         if (!w.caption.empty()) {
           SDL_Rect cr{0, 0, w.r.w, w.r.h};
@@ -269,17 +297,17 @@ void App::DrawForm(Screen& s, int ox, int oy) {
           // DrawText: DT_CENTER|DT_VCENTER|DT_SINGLELINE, or DT_CENTER|DT_WORDBREAK (top).
           TextStyle st{skin.GetFont(w.font.font), w.font.px, w.enabled ? w.font.color : w.disabled_color,
                        HAlign::kCenter, w.wrap ? VAlign::kTop : VAlign::kCenter, w.wrap};
-          DrawText(canvas_, cr, w.caption, st);
+          p.Text(cr, w.caption, st);
         }
         break;
       }
       case Widget::kSlider: {
-        if (w.picture) SDL_BlitSurface(w.picture, nullptr, canvas_, &r);
+        if (w.picture) p.Image(w.picture, nullptr, SDL_Rect{r.x, r.y, w.picture->w, w.picture->h});
         SDL_Surface* n = w.def ? w.def->Get(GraphicDef::kUp) : nullptr;
         if (n && w.max > w.min) {
           int span = w.r.w - 2 * w.margin - n->w;
           SDL_Rect d{r.x + w.margin + (w.pos - w.min) * span / (w.max - w.min), r.y + (w.r.h - n->h) / 2, n->w, n->h};
-          SDL_BlitSurface(n, nullptr, canvas_, &d);
+          p.Image(n, nullptr, d);
         }
         break;
       }
@@ -287,26 +315,35 @@ void App::DrawForm(Screen& s, int ox, int oy) {
         break;
     }
   }
-  s.PaintOver(canvas_, ox, oy);
-  SDL_SetSurfaceClipRect(canvas_, nullptr);
+  s.PaintOver(p.OverlayBegin(clip), ox, oy);
+  p.OverlayEnd();
+  p.SetClip(nullptr);
 }
 
-void App::Draw() {
-  SDL_FillSurfaceRect(canvas_, nullptr, 0);
+void App::Draw(const std::string* shot) {
+  // Output: the window, or the offscreen test frame.
+  int ow = 0, oh = 0;
+  if (offscreen_) {
+    SDL_SetRenderTarget(ren_, offscreen_);
+    ow = cfg_.render_w, oh = cfg_.render_h;
+  } else {
+    SDL_GetRenderOutputSize(ren_, &ow, &oh);
+  }
+  SDL_SetRenderClipRect(ren_, nullptr);
+  SDL_SetRenderDrawColor(ren_, 0, 0, 0, 255);
+  SDL_RenderClear(ren_);
+  painter_.Begin(ow, oh, cfg_.upgraded);
   if (cur_) DrawForm(*cur_, 0, 0);
   for (Screen* p : popups_) {
     int ox, oy;
     Origin(*p, &ox, &oy);
     if (p->form.background) {
-      SDL_Rect dst{ox, oy, p->form.w, p->form.h};
-      SDL_BlitSurface(p->form.background, nullptr, canvas_, &dst);
+      SDL_Rect dst{ox, oy, p->form.background->w, p->form.background->h};
+      painter_.Image(p->form.background, nullptr, dst);
     }
     DrawForm(*p, ox, oy);
   }
-  SDL_UpdateTexture(tex_, nullptr, canvas_->pixels, canvas_->pitch);
-  SDL_SetRenderDrawColor(ren_, 0, 0, 0, 255);
-  SDL_RenderClear(ren_);
-  SDL_RenderTexture(ren_, tex_, nullptr, nullptr);
+  painter_.End();
   int dim = dim_;
   if (fade_in_at_) {
     Uint64 t = SDL_GetTicks() - fade_in_at_;
@@ -314,17 +351,34 @@ void App::Draw() {
     if (!dim) fade_in_at_ = 0;
   }
   if (dim > 0) {
+    SDL_SetRenderClipRect(ren_, nullptr);
     SDL_SetRenderDrawBlendMode(ren_, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(ren_, 0, 0, 0, Uint8(std::min(dim, 255)));
     SDL_RenderFillRect(ren_, nullptr);
   }
+  if (!notice_.empty() && SDL_GetTicks() < notice_until_ && !dim) painter_.Notice(notice_, skin.GetFont(2));
+  if (shot) {
+    if (SDL_Surface* img = SDL_RenderReadPixels(ren_, nullptr)) {
+      if (!SDL_SavePNG(img, shot->c_str())) SDL_Log("screenshot %s: %s", shot->c_str(), SDL_GetError());
+      SDL_DestroySurface(img);
+    }
+  }
+  if (offscreen_) {
+    // Show the test frame in the window too, fitted.
+    SDL_SetRenderTarget(ren_, nullptr);
+    int ww = 0, wh = 0;
+    SDL_GetRenderOutputSize(ren_, &ww, &wh);
+    SDL_SetRenderDrawColor(ren_, 0, 0, 0, 255);
+    SDL_RenderClear(ren_);
+    float k = std::min(float(ww) / ow, float(wh) / oh);
+    SDL_FRect d{(ww - ow * k) / 2, (wh - oh * k) / 2, ow * k, oh * k};
+    SDL_SetTextureScaleMode(offscreen_, SDL_SCALEMODE_LINEAR);
+    SDL_RenderTexture(ren_, offscreen_, nullptr, &d);
+  }
   SDL_RenderPresent(ren_);
 }
 
-void App::Screenshot(const std::string& path) {
-  Draw();
-  if (!SDL_SavePNG(canvas_, path.c_str())) SDL_Log("screenshot %s: %s", path.c_str(), SDL_GetError());
-}
+void App::Screenshot(const std::string& path) { Draw(&path); }
 
 void App::LoadScript(const std::string& path) {
   std::ifstream f(path);
@@ -355,7 +409,8 @@ void App::RunScript() {
       }
     } else if (s.cmd == "key" && t) {
       SDL_Keycode k = SDL_GetKeyFromName(s.arg.c_str());
-      if (!t->OnKey(k)) {
+      if (cfg_.upgrade_key && k == cfg_.upgrade_key) SetUpgraded(!cfg_.upgraded, true);
+      else if (!t->OnKey(k)) {
         if (k == SDLK_ESCAPE)
           for (auto& w : t->form.widgets)
             if (w->is_cancel && w->visible && w->enabled) { Click(w.get()); break; }
@@ -368,6 +423,8 @@ void App::RunScript() {
       }
     } else if (s.cmd == "shot") {
       Screenshot(s.arg);
+    } else if (s.cmd == "upgraded") {
+      SetUpgraded(s.arg != "0");
     } else if (s.cmd == "hover" && t) {
       hover_ = t->form.Get(s.arg);
     } else if (s.cmd == "quit") {
@@ -389,9 +446,11 @@ int App::Run() {
         case SDL_EVENT_MOUSE_MOTION:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP: {
-          SDL_ConvertEventToRenderCoordinates(ren_, &e);
+          SDL_ConvertEventToRenderCoordinates(ren_, &e);  // window -> output pixels
           float fx = e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.x : e.button.x;
           float fy = e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.y : e.button.y;
+          painter_.ToLogical(fx, fy, &fx, &fy);
+          fx = std::floor(fx), fy = std::floor(fy);
           Widget* w = HitTest(int(fx), int(fy));
           hover_ = w;
           // Sliders follow the mouse while the button is held.
@@ -439,6 +498,10 @@ int App::Run() {
           SDL_Keycode k = e.key.key;
           if (k == SDLK_F12 && !cfg_.screenshot_path.empty()) {
             Screenshot(cfg_.screenshot_path);
+            break;
+          }
+          if (cfg_.upgrade_key && k == cfg_.upgrade_key && !e.key.repeat) {
+            SetUpgraded(!cfg_.upgraded, true);
             break;
           }
           if (k == SDLK_RETURN && (e.key.mod & SDL_KMOD_ALT)) {

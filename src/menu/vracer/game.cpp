@@ -39,7 +39,7 @@ void VrScreen::PaintOver(SDL_Surface* canvas, int ox, int oy) {
     for (int i = 0; i < 26; i++) {
       SDL_Rect src{((i + bulb_frame_) & 1) * fw, 0, fw, bulb_->h};
       SDL_Rect dst{ox + 182 + 17 * i, oy + 96, fw, bulb_->h};
-      SDL_BlitSurface(bulb_, &src, canvas, &dst);
+      davi::Blit(canvas, bulb_, &src, dst);
     }
   }
   Paint(canvas, ox, oy);
@@ -351,6 +351,7 @@ SDL_Surface* Game::CarPicture(int car, int w, int h) {
   if (src) {
     out = SDL_CreateSurface(w, h, src->format);
     if (out) SDL_BlitSurfaceScaled(src, nullptr, out, nullptr, SDL_SCALEMODE_LINEAR);
+    davi::DerivePicture(out, src, nullptr, nullptr);  // upgraded menu: drawn from src's HD picture
   }
   scaled_[key] = out;
   return out;

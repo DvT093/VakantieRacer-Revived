@@ -9,6 +9,8 @@
 //   AlphaToCoverage=1   ; uitgesneden randen (bomen, hekken) ook glad
 //   Mipmaps=1           ; mipmaps + trilinear
 //   Anisotropy=16       ; 1 (uit) .. 16
+//   MenuUpgrades=1      ; menu scherp op schermmaat met HD-plaatjes (1) of
+//                       ; origineel 800x600 opgerekt (0); F9 in het menu wisselt
 #pragma once
 
 #include <sys/stat.h>
@@ -30,6 +32,7 @@ struct GfxSettings {
   bool alpha_to_coverage = true;
   bool mipmaps = true;
   int anisotropy = 16;
+  bool menu_upgrades = true;
 
   bool Screen() const { return width == 0; }
   bool Original() const { return width < 0; }
@@ -85,6 +88,7 @@ inline GfxSettings LoadGfxSettings(const std::string& path = GfxSettingsPath()) 
     else if (k == "alphatocoverage") s.alpha_to_coverage = n != 0;
     else if (k == "mipmaps") s.mipmaps = n != 0;
     else if (k == "anisotropy") s.anisotropy = n < 1 ? 1 : n > 16 ? 16 : n;
+    else if (k == "menuupgrades") s.menu_upgrades = n != 0;
   }
   std::fclose(f);
   return s;
@@ -99,10 +103,13 @@ inline bool SaveGfxSettings(const GfxSettings& s, const std::string& path = GfxS
                "; Beeldinstellingen van de Mac-port (Opties > Gevorderd). In de race wisselt\n"
                "; F9 alles tussen origineel en upgraded, F10 alleen anti-aliasing, F11 alleen\n"
                "; de texturefiltering. Resolutie: screen, original of <breedte>x<hoogte>.\n"
+               "; MenuUpgrades: het menu scherp met HD-plaatjes (1) of origineel (0); F9 in\n"
+               "; het menu wisselt.\n"
                "[Graphics]\n"
-               "Upgrades=%d\nResolution=%s\nMSAA=%d\nAlphaToCoverage=%d\nMipmaps=%d\nAnisotropy=%d\n",
+               "Upgrades=%d\nResolution=%s\nMSAA=%d\nAlphaToCoverage=%d\nMipmaps=%d\nAnisotropy=%d\n"
+               "MenuUpgrades=%d\n",
                s.upgrades ? 1 : 0, s.ResolutionText().c_str(), s.msaa, s.alpha_to_coverage ? 1 : 0,
-               s.mipmaps ? 1 : 0, s.anisotropy);
+               s.mipmaps ? 1 : 0, s.anisotropy, s.menu_upgrades ? 1 : 0);
   std::fclose(f);
   return true;
 }

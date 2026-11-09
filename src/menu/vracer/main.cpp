@@ -4,11 +4,16 @@
 //
 //   vracer-menu --game-dir DIR [--mods DIR] [--race BIN] [--script FILE]
 //               [--shot FILE] [--no-intro]
+//   vracer-menu --game-dir DIR --dump-pictures OUT
 //
 // DIR is the CD's data folder (spel.dat, MenuData/). --mods is the menu mod
 // folder (default: mods/menu next to the project), --race the race binary
 // (default: vracer next to this binary). --script runs scripted input for
 // tests (see App::LoadScript); F12 saves a screenshot to --shot.
+// --dump-pictures writes the pictures inside Menu.exe's forms to OUT for
+// tools/upscale_menu.py. HD pictures: mods/menu/hd and mods/menu/local/hd
+// (graphics.ini MenuUpgrades, F9). VRACER_MENU_SIZE=WxH draws offscreen at
+// that size (screenshots of a big screen in tests).
 
 #include <unistd.h>
 
@@ -19,11 +24,12 @@
 #include <string>
 
 #include "engine/app.h"
+#include "gfx_settings.h"
 #include "vracer/game.h"
 #include "vracer/screens.h"
 
 int main(int argc, char** argv) {
-  std::string game_dir, mods_dir, race_bin, script, shot;
+  std::string game_dir, mods_dir, race_bin, script, shot, dump;
   bool intro = true;
   if (const char* e = std::getenv("VRACER_GAME_DIR")) game_dir = e;
   for (int i = 1; i < argc; i++) {
@@ -36,6 +42,7 @@ int main(int argc, char** argv) {
     else if (!std::strcmp(argv[i], "--script")) next(&script);
     else if (!std::strcmp(argv[i], "--shot")) next(&shot);
     else if (!std::strcmp(argv[i], "--no-intro")) intro = false;
+    else if (!std::strcmp(argv[i], "--dump-pictures")) next(&dump);
     else {
       std::fprintf(stderr, "usage: %s --game-dir DIR [--mods DIR] [--race BIN] [--script FILE] [--shot FILE] [--no-intro]\n",
                    argv[0]);
@@ -57,6 +64,11 @@ int main(int argc, char** argv) {
   if (menu_exe.empty() || !exe.Load(menu_exe)) {
     std::fprintf(stderr, "vracer-menu: cannot read %s/MenuData/Menu.exe\n", game_dir.c_str());
     return 1;
+  }
+  if (!dump.empty()) {
+    int n = davi::DumpFormPictures(exe, dump);
+    std::printf("vracer-menu: %d form pictures in %s\n", n, dump.c_str());
+    return n > 0 ? 0 : 1;
   }
   davi::Assets assets;
   // mods/menu/local: pictures made from your own CD by
@@ -88,6 +100,11 @@ int main(int argc, char** argv) {
   cfg.screenshot_path = shot;
   cfg.child_id = "VRACER";  // the race (vracer) on SwARc
   if (const char* fs = std::getenv("VRACER_FULLSCREEN")) cfg.fullscreen = *fs && std::strcmp(fs, "window") && *fs != '0';
+  // Menu in 4K: upgraded look and HD pictures (tools/upscale_menu.py).
+  cfg.upgraded = vracer::LoadGfxSettings().menu_upgrades;
+  if (const char* u = std::getenv("VRACER_MENU_UPGRADES")) cfg.upgraded = *u != '0';
+  if (!mods_dir.empty()) cfg.hd_dirs = {mods_dir + "/hd", mods_dir + "/local/hd"};
+  if (const char* sz = std::getenv("VRACER_MENU_SIZE")) std::sscanf(sz, "%dx%d", &cfg.render_w, &cfg.render_h);
   if (!app.Init(cfg)) {
     std::fprintf(stderr, "vracer-menu: cannot open the window: %s\n", SDL_GetError());
     return 1;

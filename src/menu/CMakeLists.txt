@@ -10,7 +10,7 @@ pkg_check_modules(MENU_FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec li
 
 add_library(davi_menu STATIC
   engine/dfm.cpp engine/ini.cpp engine/text.cpp engine/assets.cpp
-  engine/form.cpp engine/app.cpp engine/video.cpp
+  engine/form.cpp engine/app.cpp engine/video.cpp engine/hd.cpp engine/paint.cpp
   launcher/race_launcher.cpp)
 target_include_directories(davi_menu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(davi_menu PUBLIC SDL3::SDL3 Freetype::Freetype PkgConfig::MENU_FFMPEG)

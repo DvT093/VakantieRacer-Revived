@@ -12,6 +12,8 @@
 
 #include "engine/assets.h"
 #include "engine/form.h"
+#include "engine/hd.h"
+#include "engine/paint.h"
 
 namespace davi {
 
@@ -34,6 +36,8 @@ class Screen {
   virtual void Update(double dt) { (void)dt; }
   virtual void OnEditChange(Widget& w) { (void)w; }
   // Extra drawing on top of the widgets (canvas = whole 800x600 frame).
+  // Draw pictures with davi::Blit and text with davi::DrawText: those are
+  // drawn sharp at the window's resolution; other SDL drawing is scaled.
   virtual void PaintOver(SDL_Surface* canvas, int ox, int oy) { (void)canvas; (void)ox; (void)oy; }
 
   // Popups only: closes this popup with a result (Delphi ModalResult).
@@ -54,6 +58,15 @@ struct AppConfig {
   // Env prefix (SwARc game id, upper case) of the child RunChild starts,
   // for SwARc's window handoff (<ID>_WINDOW, <ID>_LINK_FD); empty: none.
   std::string child_id;
+  // Upgraded look (native resolution, HD pictures, sharp text) or the
+  // original 800x600 one; `upgrade_key` switches live (0 = no key).
+  bool upgraded = true;
+  SDL_Keycode upgrade_key = SDLK_F9;
+  // Directories with HD pictures (hd.h), first wins.
+  std::vector<std::string> hd_dirs;
+  // Tests: draw into an offscreen frame of this size (0 = the window), so
+  // screenshots show e.g. a 3024x1964 screen without taking it over.
+  int render_w = 0, render_h = 0;
 };
 
 class App {
@@ -80,6 +93,9 @@ class App {
   // started). `messages` gets the child's own lines on the link.
   int RunChild(const std::vector<std::string>& argv, std::vector<std::string>* messages = nullptr);
   void Screenshot(const std::string& path);
+  // Upgraded or original look (AppConfig::upgraded), live.
+  void SetUpgraded(bool on, bool notice = false);
+  bool Upgraded() const { return cfg_.upgraded; }
   void SetFocus(Widget* w) { focus_ = w; }
 
   Skin& skin;
@@ -99,7 +115,7 @@ class App {
     Uint64 at;
     std::string cmd, arg;
   };
-  void Draw();
+  void Draw(const std::string* shot = nullptr);
   void DrawDim(int dim);  // Draw with black over it (0-255)
   void DrawForm(Screen& s, int ox, int oy);
   Screen* Top() const { return popups_.empty() ? cur_ : popups_.back(); }
@@ -113,8 +129,11 @@ class App {
 
   SDL_Window* win_ = nullptr;
   SDL_Renderer* ren_ = nullptr;
-  SDL_Texture* tex_ = nullptr;
-  SDL_Surface* canvas_ = nullptr;
+  Painter painter_;
+  HdPictures hd_;
+  SDL_Texture* offscreen_ = nullptr;  // AppConfig::render_w/h
+  std::string notice_;
+  Uint64 notice_until_ = 0;
   Screen* cur_ = nullptr;
   std::vector<Screen*> popups_;
   std::vector<Timer> timers_;

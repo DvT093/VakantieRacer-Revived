@@ -17,7 +17,7 @@ void DrawDots(Game& g, SDL_Surface* canvas, int x, int y, int value, int delta) 
     SDL_SetSurfaceColorKey(s, true, key);
     for (int k = 0; k < n; k++, i++) {
       SDL_Rect d{x + i * 13, y, s->w, s->h};
-      SDL_BlitSurface(s, nullptr, canvas, &d);
+      davi::Blit(canvas, s, nullptr, d);
     }
   };
   put(0, blue);

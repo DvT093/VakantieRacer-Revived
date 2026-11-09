@@ -10,6 +10,11 @@ rm -rf "$APP"
 # Lak van de Z3/DeLorean en de menuplaatjes uit je eigen CD's (mods/*/local).
 python3 -I tools/make_mod_assets.py || echo "let op: make_mod_assets.py mislukt (Pillow nodig)"
 python3 -I tools/make_texture_pack.py || echo "let op: make_texture_pack.py mislukt (race zonder HD-textures)"
+# Het menu in 4K: alle menuplaatjes 4x met Real-ESRGAN (mods/menu/local/hd);
+# alleen wat veranderd is. VRACER_SKIP_UPSCALE=1 slaat dit over.
+if [ -z "$VRACER_SKIP_UPSCALE" ]; then
+  python3 -I tools/upscale_menu.py || echo "let op: upscale_menu.py mislukt (menu blijft scherp, maar met de originele plaatjes)"
+fi
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cat > "$APP/Contents/MacOS/VakantieRacer" <<'SH'
 #!/bin/sh

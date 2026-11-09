@@ -196,6 +196,7 @@ void OptionsScreen::OnClick(davi::Widget& w) {
     if (Player* p = game.Cur()) *p = temp_;
     game.SavePlayers();
     vracer::SaveGfxSettings(gfx_);
+    game.app.SetUpgraded(gfx_.menu_upgrades);
     game.StartMusic();
     game.Goto(game.Screen<MainScreen>());
   } else if (n == "btnCancel") {

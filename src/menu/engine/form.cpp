@@ -1,4 +1,5 @@
 #include "engine/form.h"
+#include "engine/hd.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -72,6 +73,7 @@ const GraphicDef* Skin::Def(const std::string& form, const std::string& ref) {
         else if (const Value* fn = c->Prop(std::string(links[s]) + ".Filename"); fn && !fn->s.empty() && assets)
           m = LoadBmp(ReadFile(assets->Find(fn->s)));
       }
+      NamePicture(m, name + "." + links[s]);  // HD: "<def>.<state>.png"
       d->img[s] = m;
     }
   } else {
@@ -156,6 +158,7 @@ void Form::Add(Skin& skin, const Component& c, int ox, int oy) {
     if (const Value* p = c.Prop("LinkedDIB.DIB"); p && bmp.empty()) bmp = p->bytes;
     if (SDL_Surface* s = LoadBmp(bmp)) {
       skin.owned_bmps[cls].push_back(s);
+      NamePicture(s, cls + "." + c.name);  // HD: "<form>.<component>.png"
       w->picture = s;
       if (w->autosize || w->r.w == 0) w->r.w = s->w, w->r.h = s->h;
     }
@@ -169,6 +172,7 @@ void Form::Add(Skin& skin, const Component& c, int ox, int oy) {
     if (const Value* p = c.Prop("BackImage.Data"))
       if (SDL_Surface* s = LoadBmp(SizedBytes(*p))) {
         skin.owned_bmps[cls].push_back(s);
+        NamePicture(s, cls + "." + c.name + ".BackImage");
         w->picture = s;
       }
     w->def = skin.Def(cls, c.Str("Definition"));

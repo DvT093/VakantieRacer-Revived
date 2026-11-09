@@ -2,7 +2,7 @@
 // videokaart, resolutie, helderheid en DirectX-probleemopties in; in de
 // Mac-port zijn dat de beeld-upgrades uit graphics.ini (src/gfx_settings.h):
 // resolutie, MSAA met alpha-to-coverage, mipmaps, anisotropic filtering en
-// of de race upgraded start. De knoppen en labels komen uit
+// of de race upgraded start, en of het menu scherp met HD-plaatjes tekent. De knoppen en labels komen uit
 // mods/menu/layout/TfrmDisplaySettings.ini; elke knop wisselt door zijn
 // waarden. Zoals in het origineel (0x47D980) gaat OK terug naar Opties, en
 // Opties OK schrijft het weg.
@@ -14,7 +14,7 @@ namespace {
 
 const char* kOwn[] = {"lblTitle", "lblResolution", "btnResolution", "lblMsaa", "btnMsaa", "lblA2c", "btnA2c",
                       "lblMipmaps", "btnMipmaps", "lblAniso", "btnAniso", "lblUpgrades", "btnUpgrades",
-                      "lblKeys", "btnOk", "btnCancel"};
+                      "lblMenu", "btnMenu", "lblKeys", "btnOk", "btnCancel"};
 
 // Volgende waarde in `list` na `v` (rond).
 template <typename T, size_t N>
@@ -37,7 +37,7 @@ DisplaySettingsPopup::DisplaySettingsPopup(Game& g) : VrScreen(g, "TfrmDisplaySe
   // POP_STD1 (456x206, knoppenbalk onderaan) hoger gemaakt: het vlak boven
   // de balk uitgerekt, de balk zelf ongewijzigd.
   form.w = 456;
-  form.h = 330;
+  form.h = 362;
   if (SDL_Surface* std1 = g.assets.Bitmap("pop_std1")) {
     bg_ = SDL_CreateSurface(form.w, form.h, std1->format);
     const int band = 160;  // eerste rij van de knoppenbalk
@@ -45,6 +45,9 @@ DisplaySettingsPopup::DisplaySettingsPopup(Game& g) : VrScreen(g, "TfrmDisplaySe
     SDL_BlitSurfaceScaled(std1, &top_src, bg_, &top_dst, SDL_SCALEMODE_LINEAR);
     SDL_Rect bar_src{0, band, std1->w, std1->h - band}, bar_dst{0, top_dst.h, form.w, std1->h - band};
     SDL_BlitSurface(std1, &bar_src, bg_, &bar_dst);
+    // Upgraded menu: drawn from POP_STD1's HD picture in the same two parts.
+    davi::DerivePicture(bg_, std1, &top_src, &top_dst);
+    davi::DerivePicture(bg_, std1, &bar_src, &bar_dst);
     form.background = bg_;
   }
 }
@@ -68,6 +71,7 @@ void DisplaySettingsPopup::Captions() {
   form.SetCaption("btnMipmaps", OnOff(s.mipmaps));
   form.SetCaption("btnAniso", s.anisotropy > 1 ? std::to_string(s.anisotropy) + "x" : "Uit");
   form.SetCaption("btnUpgrades", s.upgrades ? "Upgraded" : "Origineel");
+  form.SetCaption("btnMenu", s.menu_upgrades ? "Upgraded" : "Origineel");
 }
 
 void DisplaySettingsPopup::OnClick(davi::Widget& w) {
@@ -93,6 +97,8 @@ void DisplaySettingsPopup::OnClick(davi::Widget& w) {
     s.anisotropy = Next(kAniso, s.anisotropy);
   } else if (n == "btnupgrades") {
     s.upgrades = !s.upgrades;
+  } else if (n == "btnmenu") {
+    s.menu_upgrades = !s.menu_upgrades;
   } else if (n == "btnok") {
     Close(1);
     return;
