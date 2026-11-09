@@ -1,0 +1,86 @@
+# Tekst die in de menuplaatjes getekend is. tools/upscale_menu.py zet hem in de
+# 4K-plaatjes opnieuw in het echte lettertype (Gill Sans Ultra Bold, uit je eigen
+# Office-map; zonder dat lettertype blijft de AI-versie). Per regel: plaatje,
+# kleur van de letters (geel = titel, creme = label), vak in pixels van het
+# origineel (x0,y0,x1,y1, rond de letters) en de tekst.
+# plaatje	kleur	vak	tekst
+CHARACTE	geel	202,51,530,84	Kies je karakter
+CHARACTE	creme	159,250,252,263	Acceleratie
+CHARACTE	creme	159,278,249,293	Wegligging
+CHARACTE	creme	160,222,229,235	Snelheid
+CHARACTE	creme	160,306,249,319	Remkracht
+CHARACTE	creme	237,129,370,144	Gereden etappes
+DIFFICUL	geel	201,51,451,84	Moeilijkheid
+GARAGE	geel	200,51,342,84	Garage
+GARAGE	creme	179,312,228,325	Turbo
+GARAGE	creme	180,340,237,353	Schade
+GARAGE	creme	182,141,242,154	Service
+GARAGE	creme	182,270,250,283	Sunnies:
+GARAGE	creme	400,141,473,156	Tune-ups
+HOST	geel	201,51,446,79	Presentator
+HOST	creme	204,170,265,183	Positie:
+MAINSCRE	geel	201,51,435,79	Hoofdmenu
+OPTIONS	geel	200,51,330,84	Opties
+OPTIONS	creme	218,149,297,164	Besturing
+OPTIONS	creme	228,306,303,321	Keyboard
+OPTIONS	creme	228,331,299,346	Gamepad
+OPTIONS	creme	228,356,291,371	Joystick
+OPTIONS	creme	228,381,274,394	Stuur
+OPTIONS	creme	310,501,521,516	Start info scherm tonen
+OPTIONS	creme	376,149,454,164	Weergave
+OPTIONS	creme	386,331,423,346	Laag
+OPTIONS	creme	386,356,452,369	Normaal
+OPTIONS	creme	386,381,426,396	Hoog
+OPTIONS	creme	387,306,455,319	3D kaart
+OPTIONS	creme	546,149,597,162	Geluid
+OPTIONS	creme	563,228,610,240	Muziek
+OPTIONS	creme	563,322,619,334	Effecten
+OPTIONS	creme	563,416,625,428	Stemmen
+PLAYER	geel	199,51,413,84	Spelerlijst
+PLAYER	creme	202,180,319,195	Huidige speler
+POP_CHSP	creme	12,12,212,38	Speler Keuze
+POP_GWIN	creme	13,12,262,34	Grande Winnaar
+POP_JOYS	creme	12,10,337,36	Joystick Gevoeligheid
+POP_KEYS	creme	38,17,196,45	Toetsen
+POP_KEYS	creme	138,223,181,236	Links
+POP_KEYS	creme	153,310,200,322	Turbo
+POP_KEYS	creme	153,410,205,422	Toeter
+POP_KEYS	creme	154,360,226,372	Handrem
+POP_KEYS	creme	208,223,244,236	Rem
+POP_KEYS	creme	211,90,240,103	Gas
+POP_KEYS	creme	270,223,324,236	Rechts
+POP_NOCD	creme	13,10,275,36	CD niet gevonden
+POP_REMP	creme	12,12,309,38	Speler Verwijderen
+POP_ROND	creme	12,12,283,38	Snelste Rondetijd
+POP_SPLR	creme	13,12,226,38	Nieuwe speler
+POP_STRT	creme	39,16,238,45	Start info
+POP_STRT	creme	87,477,298,492	Start info scherm tonen
+POP_STRT	creme	138,223,181,236	Links
+POP_STRT	creme	153,310,200,322	Turbo
+POP_STRT	creme	153,410,205,422	Toeter
+POP_STRT	creme	154,360,226,372	Handrem
+POP_STRT	creme	208,223,244,236	Rem
+POP_STRT	creme	211,90,240,103	Gas
+POP_STRT	creme	270,223,324,236	Rechts
+POP_WHEE	creme	12,10,301,36	Stuur Gevoeligheid
+QUICKRAC	geel	200,51,421,79	Quick Race
+QUICKRAC	creme	159,202,252,215	Acceleratie
+QUICKRAC	creme	159,230,249,245	Wegligging
+QUICKRAC	creme	160,174,229,187	Snelheid
+QUICKRAC	creme	160,258,249,271	Remkracht
+QUICKRAC	creme	161,409,206,424	Type:
+QUICKRAC	creme	162,434,263,447	Kwalificatie:
+QUICKRAC	creme	162,459,224,472	Record:
+RESULTS	geel	201,51,420,79	Resultaten
+RESULTS	creme	247,161,308,174	Positie:
+RESULTS	creme	400,161,438,176	Tijd:
+TRACK	geel	201,51,487,84	Kies je etappe
+TRACK	creme	160,231,205,246	Type:
+TRACK	creme	161,256,262,269	Kwalificatie:
+TRACK	creme	161,281,223,294	Record:
+TRACKWIN	geel	201,51,517,84	Etappe winnaar
+TRACKWIN	creme	204,170,265,183	Positie:
+WHEELOFF	geel	172,51,604,84	Het grote prijzenwiel
+WHEELOFF	creme	445,168,506,181	Positie:
+WHEELOFF	creme	445,255,530,268	Gewonnen:
+WINRACE	geel	198,51,651,79	Winnaar Vakantierace

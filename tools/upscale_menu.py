@@ -44,6 +44,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageMath
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I leaves it out
 import menu_lamps  # noqa: E402
+import menu_text  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ESRGAN_URL = ("https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
@@ -336,6 +337,11 @@ def main():
     else:
         log("alles al upscaled")
 
+    # Text in the pictures (tools/menu_text.tsv), in the font if it is here.
+    font = menu_text.find_font()
+    text_defs = menu_text.load_defs(os.path.join(ROOT, "tools", "menu_text.tsv"))
+    if not font:
+        log("let op: Gill Sans Ultra Bold niet gevonden (Office): tekst in de plaatjes blijft de AI-versie")
     # Outputs from the cache (written only when they changed).
     wanted = set()
     def put(fname, img_or_path):
@@ -356,10 +362,15 @@ def main():
                 put(name + ".alpha.png", menu_lamps.lamp_sprite(img, SCALE, True))
             continue
         p = os.path.join(cache, plain + ".png")
-        # Screens: the lamps baked into them drawn round over the upscale.
-        lamps = menu_lamps.find_lamps(Image.open(sources_by_name[name]).convert("RGB")) if size[0] >= 400 else []
-        if lamps:
+        # Screens: the text in them set again in the font, the lamps drawn
+        # round, over the upscale.
+        orig = Image.open(sources_by_name[name]).convert("RGB") if size[0] >= 400 else None
+        lamps = menu_lamps.find_lamps(orig) if orig else []
+        texts = text_defs.get(name.lower(), []) if font and orig else []
+        if lamps or texts:
             hd = Image.open(p).convert("RGB")
+            for colour, box, text in texts:
+                hd = menu_text.set_text(orig, hd, colour, box, text, font, fill_keyed)
             for cx, cy, r, kind, colour in lamps:
                 menu_lamps.paint_lamp(hd, cx * SCALE, cy * SCALE, r * SCALE, kind, colour)
             put(name + ".png", hd)
