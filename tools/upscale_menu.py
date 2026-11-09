@@ -37,9 +37,13 @@ import stat
 import subprocess
 import sys
 import urllib.request
+import re
 import zipfile
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageMath
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I leaves it out
+import menu_lamps  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ESRGAN_URL = ("https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
@@ -49,6 +53,8 @@ MODEL = "realesrgan-x4plus"
 WORK = os.path.join(ROOT, "build", "menu_hd")
 OUT = os.path.join(ROOT, "mods", "menu", "local", "hd")
 SCALE = 4
+# Lamp pictures: drawn round from scratch (menu_lamps.py), not upscaled.
+LAMP_SPRITES = re.compile(r"^(L_[a-z]+|.*\.imgBulb|.*\.Light(On|Off)|defLight\..*)$", re.I)
 
 
 def log(*a):
@@ -281,11 +287,16 @@ def main():
         if args.force or not os.path.exists(os.path.join(cache, h + ".png")):
             jobs[h] = img
         return h
+    sources_by_name = {}
     for name, path, spec in sources(args.game_dir, args.menu):
+        sources_by_name[name] = path
         try:
             img = Image.open(path).convert("RGB")
         except Exception as e:  # noqa: BLE001
             log("overgeslagen", path, e)
+            continue
+        if LAMP_SPRITES.match(name):
+            plan.append((name, ("lamp", img), "lamp" if wants_alpha(img, spec) or spec == "edge" else None, img.size))
             continue
         plain = job(img)
         alpha = None
@@ -337,7 +348,22 @@ def main():
         else:
             img_or_path.save(dst)
     for name, plain, alpha, size in plan:
+        if isinstance(plain, tuple):  # a lamp picture
+            img = plain[1]
+            # With alpha around the lamp in both: the rail shows through.
+            put(name + ".png", menu_lamps.lamp_sprite(img, SCALE, True))
+            if alpha:
+                put(name + ".alpha.png", menu_lamps.lamp_sprite(img, SCALE, True))
+            continue
         p = os.path.join(cache, plain + ".png")
+        # Screens: the lamps baked into them drawn round over the upscale.
+        lamps = menu_lamps.find_lamps(Image.open(sources_by_name[name]).convert("RGB")) if size[0] >= 400 else []
+        if lamps:
+            hd = Image.open(p).convert("RGB")
+            for cx, cy, r, kind, colour in lamps:
+                menu_lamps.paint_lamp(hd, cx * SCALE, cy * SCALE, r * SCALE, kind, colour)
+            put(name + ".png", hd)
+            continue
         if not os.path.exists(p):
             continue
         put(name + ".png", p)
