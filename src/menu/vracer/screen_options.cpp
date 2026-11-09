@@ -30,8 +30,10 @@ int VirtualKey(SDL_Keycode k) {
     case SDLK_KP_PERIOD: return 110;
     case SDLK_KP_DIVIDE: return 111;
     case SDLK_LSHIFT: case SDLK_RSHIFT: return 16;
-    case SDLK_LCTRL: case SDLK_RCTRL: return 17;
-    case SDLK_LALT: case SDLK_RALT: case SDLK_LGUI: case SDLK_RGUI: return 18;
+    // Port: Cmd is the race's Ctrl (VK 17, see main.cpp key_aliases):
+    // macOS keeps Ctrl+arrow for itself, so Ctrl is no key here.
+    case SDLK_LGUI: case SDLK_RGUI: return 17;
+    case SDLK_LALT: case SDLK_RALT: return 18;
     case SDLK_SPACE: return 32;
     case SDLK_RETURN: case SDLK_KP_ENTER: return 13;
     case SDLK_BACKSPACE: return 8;

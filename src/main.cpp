@@ -117,6 +117,13 @@ int main(int argc, char** argv) {
   game.gfx.mipmaps = gs.mipmaps;
   game.gfx.anisotropy = gs.anisotropy;
   game.gfx_enhanced = gs.upgrades;
+  // Turbo op Cmd: macOS houdt Ctrl+pijltje voor zichzelf (Spaces), dus
+  // de race ziet de Command-toetsen als Ctrl (game.ini EXTRA1=17) en de
+  // echte Ctrl-toetsen niet.
+  game.key_aliases = {{SDL_SCANCODE_LGUI, SDL_SCANCODE_LCTRL},
+                      {SDL_SCANCODE_RGUI, SDL_SCANCODE_RCTRL},
+                      {SDL_SCANCODE_LCTRL, 0},
+                      {SDL_SCANCODE_RCTRL, 0}};
   game.gfx_key_all = SDL_SCANCODE_F9;
   game.gfx_key_aa = SDL_SCANCODE_F10;
   game.gfx_key_filter = SDL_SCANCODE_F11;
