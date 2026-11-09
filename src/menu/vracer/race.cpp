@@ -2,6 +2,7 @@
 // TData.WriteToInis before the race, TfrmMain.FillRaceResultsQR /
 // FillRaceResultsVR (0x48e17c / 0x48e374) after it.
 #include <algorithm>
+#include <cctype>
 
 #include "vracer/screens.h"
 
@@ -113,10 +114,24 @@ int ChosenTrailer(Game& g, int char_index, int trailer) {
   return c && !c->trailer.empty() ? g.TrailerIndex(c->trailer) : 0;
 }
 
-void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer) {
+void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer, bool enabled) {
   int t = ChosenTrailer(g, char_index, trailer);
-  form.SetCaption("lblTrailer", g.trailers[t].name);
-  form.SetPicture("imgTrailer", g.TrailerPicture(t));
+  for (int i = 0; i < int(g.trailers.size()); i++) {
+    davi::Widget* w = form.Get("thmTrailer" + std::to_string(i));
+    if (!w) continue;
+    w->picture = g.TrailerPicture(i);
+    w->pic_transparent = true;
+    std::string name = g.trailers[i].name;
+    if (!name.empty()) name[0] = char(std::toupper((unsigned char)name[0]));
+    w->caption = w->picture ? "" : name;
+    w->checked = i == t;
+    w->enabled = enabled;
+  }
+}
+
+int TrailerThumb(const davi::Widget& w) {
+  std::string n = davi::Lower(w.name);
+  return n.rfind("thmtrailer", 0) == 0 ? std::atoi(n.c_str() + 10) : -1;
 }
 
 void StartRace(Game& g, int char_index, int track_index, std::function<void()> after) {

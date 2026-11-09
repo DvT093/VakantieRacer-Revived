@@ -79,7 +79,7 @@ void QuickRaceScreen::SetEntry(int k) {
   bool locked = bonus && !game.BonusUnlocked();
   form.SetVisible("lblLocked", locked);
   form.SetEnabled("btnOk", !locked);
-  form.SetEnabled("btnTrailer", !locked);
+  locked_ = locked;
   if (!bonus) form.SetPicture("imgChar", game.assets.Bitmap(game.chars[k].qrbmp));
   else if (car_ == SlotCar(game, nchars)) form.SetPicture("imgChar", game.assets.Bitmap("qr_pre"));
   else form.SetPicture("imgChar", game.CarPicture(car_, 211, 161));
@@ -96,7 +96,7 @@ void QuickRaceScreen::Step(int dir) {
 
 void QuickRaceScreen::SetTrailer(int trailer) {
   trailer_ = trailer < int(game.trailers.size()) ? trailer : -1;
-  ShowTrailerChoice(game, form, char_, trailer_);
+  ShowTrailerChoice(game, form, char_, trailer_, !locked_);
 }
 
 // 0x47feb4 SetCurrentTrackIndex.
@@ -142,15 +142,13 @@ void QuickRaceScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
 void QuickRaceScreen::OnClick(davi::Widget& w) {
   int nt = int(game.tracks.size());
   std::string name = davi::Lower(w.name);
-  // The character row and (port) the Auto row walk the same entries: a car
-  // belongs to its character.
-  if (name == "btnnextchar" || name == "btnnextcar") Step(1);
-  else if (name == "btnprevchar" || name == "btnprevcar") Step(-1);
+  // Port: a car belongs to its character, so the character row picks the
+  // car too; the caravan thumbnails below the picture pick the trailer
+  // until the next car change.
+  if (name == "btnnextchar") Step(1);
+  else if (name == "btnprevchar") Step(-1);
   else if (w.name == "btnNextTrack") SetTrack((track_ + 1) % nt);
-  else if (name == "btntrailer") {
-    int n = int(game.trailers.size());
-    SetTrailer((ChosenTrailer(game, char_, trailer_) + 1) % n);
-  }
+  else if (int t = TrailerThumb(w); t >= 0) SetTrailer(t);
   else if (w.name == "btnPrevTrack") SetTrack((track_ + nt - 1) % nt);
   else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
   else if (w.name == "btnCancel") game.Goto(game.Screen<DifficultyScreen>());

@@ -42,6 +42,9 @@ class Painter {
   // Drawing, all in logical coordinates.
   void SetClip(const SDL_Rect* r);
   void Fill(const SDL_Rect& r, SDL_Color c);
+  // A filled rectangle with round corners of `radius` (logical pixels),
+  // anti-aliased over one output pixel; drawn at the output's resolution.
+  void RoundRect(const SDL_Rect& r, float radius, SDL_Color c);
   // `src` (nullptr = whole) of picture `s` into `dst`. key: -1 none, -2 the
   // picture's own colour key (bottom-left pixel if it has none), else
   // 0xRRGGBB, -3 the HD picture's alpha when upgraded (button states:

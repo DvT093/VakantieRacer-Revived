@@ -251,12 +251,10 @@ void GarageScreen::OnClick(davi::Widget& w) {
   else if (w.name == "btnRepair") item_ = 2, ShowItem();
   else if (w.name == "btnOil") item_ = 3, ShowItem();
   else if (w.name == "btnBuyTuneUp") Buy();
-  else if (davi::Lower(w.name) == "btntrailer") {
+  else if (int t = TrailerThumb(w); t >= 0) {
     // Port: the trailer for this race (kept per character).
-    Player* p = game.Cur();
-    if (!p) return;
-    int n = int(game.trailers.size());
-    Res().trailer = (ChosenTrailer(game, p->current_char, Res().trailer) + 1) % n;
+    if (!game.Cur()) return;
+    Res().trailer = t;
     game.SavePlayers();
     ShowTrailer();
   }

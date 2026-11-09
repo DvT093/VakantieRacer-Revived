@@ -17,7 +17,10 @@ They stay on this Mac (mods/race/local and mods/menu/local are in
   mods/menu/local/
     CAR_FER/CAR_Z3/CAR_DEL.bmp   the bonus cars alone on an orange
                                  background (297x227, like CAR_*.bmp)
-    TRL_CAR/TRL_HIP/TRL_JET.bmp  the trailers, small, for the trailer button
+    TRL_CAR/TRL_HIP/TRL_JET.bmp  the trailers for the caravan thumbnails on
+                                 Quick Race and in the Garage (44x28, the
+                                 inside of a thumbnail; three-quarter view
+                                 like the car pictures)
 
   tools/make_mod_assets.py [--game-dir iso/data] [--a2 DIR] [--er DIR]
 
@@ -443,7 +446,10 @@ def main():
 
     l1 = vr.image("l1racer1.tga")
     l2 = vr.image("l1racer2.tga")
-    key = (255, 0, 255)  # the button picture's transparent colour
+    # On the orange of the thumbnail (and of the game's picture boxes): the
+    # anti-aliased edges blend into it instead of a magenta halo; the menu
+    # keys the background out (bottom-left pixel).
+    key = (255, 165, 0)
     trailers = [
         ("TRL_CAR.bmp", "trailer1.d3d", l1, "tra1wiel.d3d", wheel_row(car_cfg, 22)),
         ("TRL_HIP.bmp", "trailer2.d3d", l1, "tra1wiel.d3d", wheel_row(car_cfg, 23)),
@@ -453,14 +459,7 @@ def main():
         meshes = [Mesh(*load_d3d(vr.read(body)), tex)]
         if row:
             meshes += wheel_meshes(load_d3d(vr.read(wie)), cars01, row)
-        img = render(meshes, (84, 50), yaw=60, pitch=14, background=key, ss=4, margin=0.04, fill=0.96)
-        # Keep the key colour exact around the edges (no blended halo).
-        px = img.load()
-        for y in range(img.size[1]):
-            for x in range(img.size[0]):
-                r, g, b = px[x, y]
-                if r > 200 and g < 90 and b > 200:
-                    px[x, y] = key
+        img = render(meshes, (44, 28), yaw=50, pitch=16, background=key, ss=4, margin=0.04, fill=0.96)
         img.save(os.path.join(menu_out, out))
         print(out)
 

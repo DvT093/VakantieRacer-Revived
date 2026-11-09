@@ -199,6 +199,41 @@ void Painter::Fill(const SDL_Rect& r, SDL_Color c) {
   SDL_RenderFillRect(ren_, &f);
 }
 
+void Painter::RoundRect(const SDL_Rect& r, float radius, SDL_Color c) {
+  SDL_FRect f = Pixels(r);
+  float rad = std::max(0.0f, std::min(radius * scale_, std::min(f.w, f.h) / 2));
+  // The outline as corner arcs, then a fan from the centre to the outline
+  // (inset half a pixel, full colour) and a fringe to half a pixel out
+  // (transparent): the edge is smooth at any size.
+  const int seg = std::max(2, int(rad / 2));
+  std::vector<SDL_FPoint> dir, ctr;
+  const float cx[4] = {f.x + f.w - rad, f.x + rad, f.x + rad, f.x + f.w - rad};
+  const float cy[4] = {f.y + rad, f.y + rad, f.y + f.h - rad, f.y + f.h - rad};
+  for (int q = 0; q < 4; q++)
+    for (int i = 0; i <= seg; i++) {
+      float a = float(M_PI) / 2 * (q + float(i) / seg);
+      dir.push_back({std::cos(a), -std::sin(a)});
+      ctr.push_back({cx[q], cy[q]});
+    }
+  SDL_FColor in{c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f}, out = in;
+  out.a = 0;
+  std::vector<SDL_Vertex> v;
+  std::vector<int> idx;
+  v.push_back({{f.x + f.w / 2, f.y + f.h / 2}, in, {0, 0}});
+  int n = int(dir.size());
+  for (int i = 0; i < n; i++) {
+    float ri = std::max(0.0f, rad - 0.5f), ro = rad + 0.5f;
+    v.push_back({{ctr[i].x + dir[i].x * ri, ctr[i].y + dir[i].y * ri}, in, {0, 0}});
+    v.push_back({{ctr[i].x + dir[i].x * ro, ctr[i].y + dir[i].y * ro}, out, {0, 0}});
+  }
+  for (int i = 0; i < n; i++) {
+    int a = 1 + 2 * i, b = 1 + 2 * ((i + 1) % n);
+    idx.insert(idx.end(), {0, a, b, a, a + 1, b, b, a + 1, b + 1});
+  }
+  SDL_SetRenderDrawBlendMode(ren_, SDL_BLENDMODE_BLEND);
+  SDL_RenderGeometry(ren_, nullptr, v.data(), int(v.size()), idx.data(), int(idx.size()));
+}
+
 Painter::Tex* Painter::Texture(SDL_Surface* s, int key, bool dynamic) {
   const bool want_hd = upgraded_ && !dynamic && hd_;
   auto k = std::make_tuple(s, key, want_hd);

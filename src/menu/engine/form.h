@@ -34,7 +34,10 @@ struct FontSpec {
 };
 
 struct Widget {
-  enum Kind { kOther, kImage, kLabel, kButton, kCheckBox, kRadio, kEdit, kSlider };
+  // kThumb (port, layout Class=TDaviThumb): a clickable picture in a rounded
+  // frame, `checked` = the chosen one of its `group` (arrow keys walk the
+  // group); `caption` when there is no picture.
+  enum Kind { kOther, kImage, kLabel, kButton, kCheckBox, kRadio, kEdit, kSlider, kThumb };
   Kind kind = kOther;
   std::string cls, name;
   SDL_Rect r{0, 0, 0, 0};

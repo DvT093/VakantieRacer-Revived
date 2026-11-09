@@ -148,7 +148,7 @@ void App::FocusFirst(Screen& s) {
   for (auto& w : s.form.widgets) {
     if (!w->visible || !w->enabled || !w->tab_stop) continue;
     if (w->kind != Widget::kButton && w->kind != Widget::kEdit && w->kind != Widget::kCheckBox &&
-        w->kind != Widget::kRadio)
+        w->kind != Widget::kRadio && w->kind != Widget::kThumb)
       continue;
     if (!best || w->tab_order < best->tab_order) best = w.get();
   }
@@ -162,7 +162,7 @@ void App::MoveFocus(int dir) {
   for (auto& w : s->form.widgets)
     if (w->visible && w->enabled && w->tab_stop &&
         (w->kind == Widget::kButton || w->kind == Widget::kEdit || w->kind == Widget::kCheckBox ||
-         w->kind == Widget::kRadio))
+         w->kind == Widget::kRadio || w->kind == Widget::kThumb))
       v.push_back(w.get());
   if (v.empty()) return;
   std::stable_sort(v.begin(), v.end(), [](Widget* a, Widget* b) { return a->tab_order < b->tab_order; });
@@ -187,7 +187,8 @@ Widget* App::HitTest(int x, int y) {
     Widget* w = it->get();
     if (!w->visible) continue;
     bool clickable = w->kind == Widget::kButton || w->kind == Widget::kCheckBox || w->kind == Widget::kSlider ||
-                     w->kind == Widget::kRadio || w->kind == Widget::kEdit || !w->onclick.empty();
+                     w->kind == Widget::kRadio || w->kind == Widget::kEdit || w->kind == Widget::kThumb ||
+                     !w->onclick.empty();
     if (!clickable) continue;
     if (x >= w->r.x && x < w->r.x + w->r.w && y >= w->r.y && y < w->r.y + w->r.h) return w->enabled ? w : nullptr;
   }
@@ -301,6 +302,34 @@ void App::DrawForm(Screen& s, int ox, int oy) {
         }
         break;
       }
+      case Widget::kThumb: {
+        // Port: a picture in a rounded frame like the game's picture boxes
+        // (orange inside, light rim); the chosen one has the cyan of the
+        // game's lamps, hover and keyboard focus a white rim, unavailable
+        // ones are faded.
+        bool lit = w.enabled && (hover_ == &w || focus_ == &w);
+        const float rad = 5;
+        if (w.checked && w.enabled)
+          p.RoundRect(SDL_Rect{r.x - 2, r.y - 2, r.w + 4, r.h + 4}, rad + 2, SDL_Color{79, 230, 255, 110});
+        SDL_Color rim = !w.enabled  ? SDL_Color{230, 190, 110, 255}
+                        : lit       ? SDL_Color{255, 255, 255, 255}
+                        : w.checked ? SDL_Color{79, 230, 255, 255}
+                                    : SDL_Color{255, 243, 196, 255};
+        p.RoundRect(r, rad, rim);
+        SDL_Rect ir{r.x + 2, r.y + 2, r.w - 4, r.h - 4};
+        p.RoundRect(ir, rad - 2, SDL_Color{255, 165, 0, 255});
+        if (SDL_Surface* pic = w.Pic()) {
+          float k = std::min(1.0f, std::min(float(ir.w) / pic->w, float(ir.h) / pic->h));
+          int dw = int(std::lround(pic->w * k)), dh = int(std::lround(pic->h * k));
+          SDL_Rect d{ir.x + (ir.w - dw) / 2, ir.y + (ir.h - dh) / 2, dw, dh};
+          p.Image(pic, nullptr, d, w.pic_transparent ? (w.key_rgb >= 0 ? w.key_rgb : -2) : -1);
+        } else if (!w.caption.empty()) {
+          TextStyle st{skin.GetFont(w.font.font), w.font.px, w.font.color, HAlign::kCenter, VAlign::kCenter, false};
+          p.Text(ir, w.caption, st);
+        }
+        if (!w.enabled) p.RoundRect(ir, rad - 2, SDL_Color{255, 165, 0, 170});
+        break;
+      }
       case Widget::kSlider: {
         if (w.picture) p.Image(w.picture, nullptr, SDL_Rect{r.x, r.y, w.picture->w, w.picture->h});
         SDL_Surface* n = w.def ? w.def->Get(GraphicDef::kUp) : nullptr;
@@ -395,6 +424,50 @@ void App::LoadScript(const std::string& path) {
   script_t0_ = SDL_GetTicks();
 }
 
+// A key press on screen `t` (also the script's "key"): edits, the
+// screen's own keys, thumbnail rows, Tab, Esc (cancel), Enter/Space.
+void App::Key(Screen& t, SDL_Keycode k, SDL_Keymod mod) {
+  if (focus_ && focus_->kind == Widget::kEdit && k == SDLK_BACKSPACE) {
+    if (focus_->select_all) focus_->caption.clear(), focus_->select_all = false;
+    else if (!focus_->caption.empty()) focus_->caption.pop_back();
+    t.OnEditChange(*focus_);
+    return;
+  }
+  if (t.OnKey(k)) return;
+  if (focus_ && focus_->kind == Widget::kThumb &&
+      (k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN)) {
+    // Port: the arrow keys walk a row (or column) of thumbnails.
+    std::vector<Widget*> row;
+    for (auto& w : t.form.widgets)
+      if (w->kind == Widget::kThumb && w->group == focus_->group && w->visible && w->enabled)
+        row.push_back(w.get());
+    std::stable_sort(row.begin(), row.end(), [](Widget* a, Widget* b) { return a->tab_order < b->tab_order; });
+    auto it = std::find(row.begin(), row.end(), focus_);
+    int n = int(row.size()), i = int(it - row.begin()) + (k == SDLK_LEFT || k == SDLK_UP ? -1 : 1);
+    if (it != row.end() && i >= 0 && i < n) focus_ = row[i];
+    return;
+  }
+  if (k == SDLK_TAB) {
+    MoveFocus(mod & SDL_KMOD_SHIFT ? -1 : 1);
+  } else if (k == SDLK_ESCAPE) {
+    for (auto& w : t.form.widgets)
+      if (w->is_cancel && w->visible && w->enabled) {
+        Click(w.get());
+        break;
+      }
+  } else if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) {
+    Widget* target = focus_ && focus_->kind != Widget::kEdit ? focus_ : nullptr;
+    if (!target && k != SDLK_SPACE)
+      for (auto& w : t.form.widgets)
+        if (w->is_default && w->visible && w->enabled) target = w.get();
+    if (target) {
+      if (on_button_down && (target->kind == Widget::kButton || target->kind == Widget::kThumb))
+        on_button_down(*target);
+      Click(target);
+    }
+  }
+}
+
 void App::RunScript() {
   while (!script_.empty() && SDL_GetTicks() - script_t0_ >= script_.front().at) {
     Step s = script_.front();
@@ -404,17 +477,13 @@ void App::RunScript() {
       Widget* w = t->form.Get(s.arg);
       if (!w) SDL_Log("script: no %s on %s", s.arg.c_str(), t->form.cls.c_str());
       else {
-        if (on_button_down && w->kind == Widget::kButton) on_button_down(*w);
+        if (on_button_down && (w->kind == Widget::kButton || w->kind == Widget::kThumb)) on_button_down(*w);
         Click(w);
       }
     } else if (s.cmd == "key" && t) {
       SDL_Keycode k = SDL_GetKeyFromName(s.arg.c_str());
       if (cfg_.upgrade_key && k == cfg_.upgrade_key) SetUpgraded(!cfg_.upgraded, true);
-      else if (!t->OnKey(k)) {
-        if (k == SDLK_ESCAPE)
-          for (auto& w : t->form.widgets)
-            if (w->is_cancel && w->visible && w->enabled) { Click(w.get()); break; }
-      }
+      else Key(*t, k, SDL_KMOD_NONE);
     } else if (s.cmd == "type" && t) {
       if (focus_ && focus_->kind == Widget::kEdit) {
         if (focus_->select_all) focus_->caption.clear(), focus_->select_all = false;
@@ -474,9 +543,9 @@ int App::Run() {
           if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN && e.button.button == SDL_BUTTON_LEFT) {
             pressed_ = w;
             if (w && (w->kind == Widget::kButton || w->kind == Widget::kEdit || w->kind == Widget::kCheckBox ||
-                      w->kind == Widget::kRadio) && w->tab_stop)
+                      w->kind == Widget::kRadio || w->kind == Widget::kThumb) && w->tab_stop)
               focus_ = w;
-            if (w && on_button_down && w->kind == Widget::kButton) on_button_down(*w);
+            if (w && on_button_down && (w->kind == Widget::kButton || w->kind == Widget::kThumb)) on_button_down(*w);
           } else if (e.type == SDL_EVENT_MOUSE_BUTTON_UP && e.button.button == SDL_BUTTON_LEFT) {
             Widget* p = pressed_;
             pressed_ = nullptr;
@@ -509,31 +578,7 @@ int App::Run() {
             SDL_SetWindowFullscreen(win_, !fs);
             break;
           }
-          if (focus_ && focus_->kind == Widget::kEdit && k == SDLK_BACKSPACE) {
-            if (focus_->select_all) focus_->caption.clear(), focus_->select_all = false;
-            else if (!focus_->caption.empty()) focus_->caption.pop_back();
-            t->OnEditChange(*focus_);
-            break;
-          }
-          if (t->OnKey(k)) break;
-          if (k == SDLK_TAB) {
-            MoveFocus(e.key.mod & SDL_KMOD_SHIFT ? -1 : 1);
-          } else if (k == SDLK_ESCAPE) {
-            for (auto& w : t->form.widgets)
-              if (w->is_cancel && w->visible && w->enabled) {
-                Click(w.get());
-                break;
-              }
-          } else if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) {
-            Widget* target = focus_ && focus_->kind != Widget::kEdit ? focus_ : nullptr;
-            if (!target && k != SDLK_SPACE)
-              for (auto& w : t->form.widgets)
-                if (w->is_default && w->visible && w->enabled) target = w.get();
-            if (target) {
-              if (on_button_down && target->kind == Widget::kButton) on_button_down(*target);
-              Click(target);
-            }
-          }
+          Key(*t, k, e.key.mod);
           break;
         }
         default:

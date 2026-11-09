@@ -125,6 +125,7 @@ class App {
   void ActivateScreen(Screen* s);
   void FocusFirst(Screen& s);
   void MoveFocus(int dir);
+  void Key(Screen& t, SDL_Keycode k, SDL_Keymod mod);
   void RunScript();
 
   SDL_Window* win_ = nullptr;

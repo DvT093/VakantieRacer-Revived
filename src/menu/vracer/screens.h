@@ -48,14 +48,15 @@ class QuickRaceScreen : public VrScreen {  // TfrmQuickRace
   void SetTrack(int i);
   // Port: the entries are the characters, then the bonus cars (the
   // presenter in the Ferrari as in the original, the Z3 and DeLorean when
-  // open); the Auto row (btnPrevCar/btnNextCar) walks the same list.
-  // car_ = the bonus car of the bonus entry. btnTrailer: the trailer
-  // (-1 = the car's own).
+  // open); the character row walks them. car_ = the bonus car of the
+  // bonus entry. The caravan thumbnails (thmTrailer0-3) pick the trailer
+  // (-1 = the car's own); locked_: the entry is not open.
   std::vector<int> Entries();  // car numbers, characters first
   void SetEntry(int k);
   void Step(int dir);
   void SetTrailer(int trailer);
   int char_ = 0, track_ = 0, car_ = -1, trailer_ = -1;
+  bool locked_ = false;
 };
 
 class ResultsScreen : public VrScreen {  // TfrmResults
@@ -124,7 +125,7 @@ class GarageScreen : public VrScreen {  // TfrmGarage (GARAGE.bmp)
  private:
   void UpdateButtons();
   void ShowItem();
-  void ShowTrailer();  // port: btnTrailer, lblTrailer, imgTrailer
+  void ShowTrailer();  // port: the caravan thumbnails thmTrailer0-3
   void Buy();
   CharResult& Res();
   int item_ = 0;     // 0 none, 1 tune-up, 2 repair, 3 turbo oil
@@ -294,8 +295,12 @@ int SlotCar(Game& g, int char_index);
 int BonusEntryCar(Game& g, int char_index, int car);
 // The trailer for the race (-1 = the standard trailer of his car slot).
 int ChosenTrailer(Game& g, int char_index, int trailer);  // index into Game::trailers
-// Trailer button text: "<name>" of the chosen trailer.
-void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer);
+// The caravan thumbnails thmTrailer<i> (layout Class=TDaviThumb, one per
+// Game::trailers entry): picture (or the name when there is none), the
+// chosen one checked, all enabled or not.
+void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer, bool enabled = true);
+// The trailer index of a thumbnail thmTrailer<i>, or -1 for other widgets.
+int TrailerThumb(const davi::Widget& w);
 void TakeResults(Game& g, int char_index, int track_index);
 
 }  // namespace vr

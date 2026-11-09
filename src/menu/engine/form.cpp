@@ -176,6 +176,11 @@ void Form::Add(Skin& skin, const Component& c, int ox, int oy) {
         w->picture = s;
       }
     w->def = skin.Def(cls, c.Str("Definition"));
+  } else if (c.cls == "TDaviThumb") {
+    w->kind = Widget::kThumb;
+    w->autosize = false;
+    w->halign = HAlign::kCenter;
+    w->valign = VAlign::kCenter;
   } else if (c.cls == "TLabel") {
     w->kind = Widget::kLabel;
   } else if (c.cls == "TEdit") {
@@ -266,6 +271,7 @@ bool Form::Build(Skin& skin, const std::string& form_cls, const std::string& mod
       num("Width", &wd->r.w);
       num("Height", &wd->r.h);
       num("TabOrder", &wd->tab_order);
+      num("Group", &wd->group);
       num("Font", &wd->font.font);
       if (mod.Has(sec, "FontSize")) wd->font.px = PointsToPx(mod.GetInt(sec, "FontSize"));
       if (mod.Has(sec, "FontColor")) wd->font.color = ColorRef(ParseNum(mod.Get(sec, "FontColor")));
