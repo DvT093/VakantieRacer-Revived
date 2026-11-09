@@ -8,7 +8,8 @@
 // Here both keys open a pause menu over the frozen frame instead: Doorgaan,
 // Opnieuw starten (when a front end runs the race), the image upgrades
 // (as F9/F10/F11) and Stoppen (what J did). Drawn with the game's own HUD
-// font (overlay.ini [FONT1] on overlay.tga). See re/findings.md "Pauze".
+// font (overlay.ini [FONT1] on overlay.tga), or its HD version from the
+// texture pack while the upgrades are on. See re/findings.md "Pauze".
 
 #include <algorithm>
 #include <cctype>
@@ -21,6 +22,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <SDL3/SDL.h>
 
 #include "game/race_setup.h"
 #include "gfx_settings.h"
@@ -61,6 +64,7 @@ struct Glyph {
 
 struct Font {
   int tw = 0, th = 0;
+  int scale = 1;             // texels per glyph pixel (overlay.ini's)
   std::vector<uint32_t> px;  // ARGB, the key colour (255,0,127) transparent
   std::map<int, Glyph> glyphs;
   bool ok() const { return !px.empty() && !glyphs.empty(); }
@@ -159,6 +163,37 @@ void LoadFontIni(Font& f) {
   }
 }
 
+// overlay.tga's HD version in the texture pack (tools/make_texture_pack.py
+// lists it in index.tsv): the same glyphs at `scale` texels per pixel.
+Font LoadHdFont(const Font& sd) {
+  Font f;
+  const std::string& pack = recomp::g_proc->game.texture_pack;
+  if (pack.empty() || !sd.ok()) return f;
+  std::ifstream idx(pack + "/index.tsv");
+  std::string line, hash;
+  while (std::getline(idx, line))
+    if (line.rfind("overlay.tga\t", 0) == 0) hash = line.substr(12, 16);
+  if (hash.empty()) return f;
+  SDL_Surface* raw = SDL_LoadPNG((pack + "/" + hash + ".png").c_str());
+  SDL_Surface* img = raw ? SDL_ConvertSurface(raw, SDL_PIXELFORMAT_ARGB8888) : nullptr;
+  if (raw) SDL_DestroySurface(raw);
+  if (!img) return f;
+  if (img->w % sd.tw == 0 && img->w / sd.tw == img->h / sd.th) {
+    f.tw = img->w;
+    f.th = img->h;
+    f.scale = img->w / sd.tw;
+    f.px.resize(size_t(f.tw) * f.th);
+    for (int y = 0; y < f.th; y++)
+      std::memcpy(&f.px[size_t(y) * f.tw], static_cast<const uint8_t*>(img->pixels) + size_t(y) * img->pitch,
+                  size_t(f.tw) * 4);
+    f.glyphs = sd.glyphs;
+  }
+  SDL_DestroySurface(img);
+  return f;
+}
+
+// The HUD font as the race shows it now: the HD one while the upgrades
+// (F9) are on and the pack has it.
 const Font& HudFont() {
   static Font f = [] {
     Font font;
@@ -166,7 +201,8 @@ const Font& HudFont() {
     if (!font.ok()) std::fprintf(stderr, "vracer: pauze: geen HUD-font (overlay.tga/overlay.ini)\n");
     return font;
   }();
-  return f;
+  static Font hd = LoadHdFont(f);
+  return hd.ok() && recomp::hle::GfxOn(recomp::hle::GfxPart::All) ? hd : f;
 }
 
 // ---- drawing into an ARGB image
@@ -199,16 +235,44 @@ void DrawText(Image& img, const Font& f, const std::string& s, int x, int y, flo
     if (it == f.glyphs.end()) continue;
     const Glyph& g = it->second;
     const int dw = int(std::lround(g.w * k)), dh = int(std::lround(g.h * k));
+    const int s = f.scale;
     for (int dy = 0; dy < dh; dy++)
       for (int dx = 0; dx < dw; dx++) {
-        int sx = g.x + std::min(g.w - 1, int(dx / k)), sy = g.y + std::min(g.h - 1, int(dy / k));
-        if (sx < 0 || sy < 0 || sx >= f.tw || sy >= f.th) continue;
-        uint32_t p = f.px[size_t(sy) * f.tw + sx];
-        if (!(p >> 24)) continue;
         int px = int(cx) + dx, py = y + dy;
         if (px < 0 || py < 0 || px >= img.w || py >= img.h) continue;
+        uint32_t p;
+        if (s == 1) {  // the original: its pixels, as the game scales them up
+          int sx = g.x + std::min(g.w - 1, int(dx / k)), sy = g.y + std::min(g.h - 1, int(dy / k));
+          if (sx < 0 || sy < 0 || sx >= f.tw || sy >= f.th) continue;
+          p = f.px[size_t(sy) * f.tw + sx];
+        } else {  // HD: bilinear, the edges by their alpha
+          const float fx = std::clamp((dx + 0.5f) * s / k - 0.5f, 0.0f, float(g.w * s - 1)) + g.x * s;
+          const float fy = std::clamp((dy + 0.5f) * s / k - 0.5f, 0.0f, float(g.h * s - 1)) + g.y * s;
+          const int x0 = std::min(f.tw - 1, int(fx)), y0 = std::min(f.th - 1, int(fy));
+          const int x1 = std::min(f.tw - 1, x0 + 1), y1 = std::min(f.th - 1, y0 + 1);
+          const float ax = fx - x0, ay = fy - y0;
+          const uint32_t q[4] = {f.px[size_t(y0) * f.tw + x0], f.px[size_t(y0) * f.tw + x1],
+                                 f.px[size_t(y1) * f.tw + x0], f.px[size_t(y1) * f.tw + x1]};
+          const float wq[4] = {(1 - ax) * (1 - ay), ax * (1 - ay), (1 - ax) * ay, ax * ay};
+          float a = 0, ch[3] = {};
+          for (int i = 0; i < 4; i++) {
+            const float wa = (q[i] >> 24) * wq[i];
+            a += wa;
+            for (int c = 0; c < 3; c++) ch[c] += (q[i] >> (16 - 8 * c) & 255) * wa;
+          }
+          if (a < 1) continue;
+          p = uint32_t(std::lround(a)) << 24 | uint32_t(ch[0] / a) << 16 | uint32_t(ch[1] / a) << 8 |
+              uint32_t(ch[2] / a);
+        }
+        if (!(p >> 24)) continue;
         uint32_t r = (p >> 16 & 255) * tr / 255, gg = (p >> 8 & 255) * tg / 255, b = (p & 255) * tb / 255;
-        img.px[size_t(py) * img.w + px] = 0xFF000000u | r << 16 | gg << 8 | b;
+        // Over what is there, by the glyph's alpha (the HD edges).
+        uint32_t& d = img.px[size_t(py) * img.w + px];
+        const uint32_t a = p >> 24, ia = 255 - a;
+        r = (r * a + (d >> 16 & 255) * ia) / 255;
+        gg = (gg * a + (d >> 8 & 255) * ia) / 255;
+        b = (b * a + (d & 255) * ia) / 255;
+        d = std::max(d >> 24, a) << 24 | r << 16 | gg << 8 | b;
       }
     cx += (g.w + kGlyphGap) * k;
   }

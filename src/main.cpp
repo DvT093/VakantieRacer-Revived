@@ -122,5 +122,17 @@ int main(int argc, char** argv) {
   game.gfx_key_filter = SDL_SCANCODE_F11;
   game.gfx_label_original = "Origineel";
   game.gfx_label_enhanced = "Upgraded";
+  // HD-textures (tools/make_texture_pack.py, uit je eigen CD): SwARc
+  // herkent elke texture aan zijn pixels en tekent de 4x-versie zolang
+  // Upgraded aan staat (F9). VRACER_TEX_PACK=map overschrijft de plek.
+  game.gfx.replace_textures = true;
+  {
+    char self[PATH_MAX];
+    if (realpath(argv[0], self)) {
+      std::string root = self;  // <project>/out/build/release/vracer
+      for (int up = 0; up < 4; up++) root = root.substr(0, root.find_last_of('/'));
+      if (stat((root + "/build/texture_pack").c_str(), &st) == 0) game.texture_pack = root + "/build/texture_pack";
+    }
+  }
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }

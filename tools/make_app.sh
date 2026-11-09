@@ -9,6 +9,7 @@ APP="Vakantie Racer.app"
 rm -rf "$APP"
 # Lak van de Z3/DeLorean en de menuplaatjes uit je eigen CD's (mods/*/local).
 python3 -I tools/make_mod_assets.py || echo "let op: make_mod_assets.py mislukt (Pillow nodig)"
+python3 -I tools/make_texture_pack.py || echo "let op: make_texture_pack.py mislukt (race zonder HD-textures)"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cat > "$APP/Contents/MacOS/VakantieRacer" <<'SH'
 #!/bin/sh
