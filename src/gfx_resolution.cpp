@@ -20,11 +20,27 @@ int g_render_w = -1, g_render_h = -1;
 
 // De grootste 4:3-maat (pixels) op het scherm: het hele scherm als de
 // race fullscreen draait, anders het bruikbare deel min de titelbalk.
+// Vanuit het menu: de grootste 4:3-maat in het menuvenster.
 // Vóór recomp::RunProcess: SDL's video staat dan nog uit, dus even aan en
 // weer uit (zonder signal handlers, zoals SwARc hem start).
 void ScreenSize(int* w, int* h) {
   *w = 1024;
   *h = 768;
+  // Started by the menu: the race window takes the menu window's place
+  // (SwARc's VRACER_WINDOW=x,y,w,h,fullscreen,density in points), so the
+  // largest 4:3 size inside that window.
+  if (const char* e = std::getenv("VRACER_WINDOW")) {
+    int x, y, pw, ph, fs = 0;
+    float d = 1;
+    if (std::sscanf(e, "%d,%d,%d,%d,%d,%f", &x, &y, &pw, &ph, &fs, &d) >= 4 && pw > 0 && ph > 0) {
+      if (!(d > 0)) d = 1;
+      int ww = int(pw * d), hh = int(ph * d);
+      hh = std::min(hh, ww * 3 / 4) & ~1;
+      *h = hh;
+      *w = (hh * 4 / 3) & ~1;
+      return;
+    }
+  }
   SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
   if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return;
   SDL_DisplayID d = SDL_GetPrimaryDisplay();

@@ -1,11 +1,20 @@
 #include "engine/app.h"
 
+#include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <spawn.h>
+#include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#if defined(__APPLE__)
+#include <objc/message.h>
+#include <objc/runtime.h>
+#endif
+
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 
@@ -50,6 +59,9 @@ App::~App() {
 
 bool App::Init(const AppConfig& cfg) {
   cfg_ = cfg;
+  // Fullscreen without a Space of its own: the race child (RunChild) takes
+  // the screen over in place, and hiding this window then switches nothing.
+  SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
     SDL_Log("SDL_Init: %s", SDL_GetError());
     return false;
@@ -295,6 +307,17 @@ void App::Draw() {
   SDL_SetRenderDrawColor(ren_, 0, 0, 0, 255);
   SDL_RenderClear(ren_);
   SDL_RenderTexture(ren_, tex_, nullptr, nullptr);
+  int dim = dim_;
+  if (fade_in_at_) {
+    Uint64 t = SDL_GetTicks() - fade_in_at_;
+    dim = t >= kFadeMs ? 0 : int(255 - 255 * t / kFadeMs);
+    if (!dim) fade_in_at_ = 0;
+  }
+  if (dim > 0) {
+    SDL_SetRenderDrawBlendMode(ren_, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(ren_, 0, 0, 0, Uint8(std::min(dim, 255)));
+    SDL_RenderFillRect(ren_, nullptr);
+  }
   SDL_RenderPresent(ren_);
 }
 
@@ -482,33 +505,183 @@ int App::Run() {
   return exit_code_;
 }
 
-int App::RunChild(const std::vector<std::string>& argv) {
+namespace {
+
+struct Placement {
+  int x = 0, y = 0, w = 0, h = 0;
+  bool fullscreen = false;
+};
+
+Placement WindowPlacement(SDL_Window* win) {
+  Placement p;
+  p.fullscreen = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
+  SDL_Rect r;
+  if (p.fullscreen && SDL_GetDisplayBounds(SDL_GetDisplayForWindow(win), &r)) {
+    p.x = r.x, p.y = r.y, p.w = r.w, p.h = r.h;
+  } else {
+    SDL_GetWindowPosition(win, &p.x, &p.y);
+    SDL_GetWindowSize(win, &p.w, &p.h);
+  }
+  return p;
+}
+
+// macOS 14 and later activate apps cooperatively: the active app (the
+// menu) hands activation to the race before the race asks for it.
+void YieldActivationTo(pid_t pid) {
+#if defined(__APPLE__)
+  void* app = reinterpret_cast<void* (*)(void*, SEL)>(objc_msgSend)(
+      reinterpret_cast<void*>(objc_getClass("NSApplication")), sel_registerName("sharedApplication"));
+  SEL yield = sel_registerName("yieldActivationToApplication:");
+  if (!app || !class_respondsToSelector(object_getClass(reinterpret_cast<id>(app)), yield)) return;
+  void* other = reinterpret_cast<void* (*)(void*, SEL, int)>(objc_msgSend)(
+      reinterpret_cast<void*>(objc_getClass("NSRunningApplication")),
+      sel_registerName("runningApplicationWithProcessIdentifier:"), int(pid));
+  if (other) reinterpret_cast<void (*)(void*, SEL, void*)>(objc_msgSend)(app, yield, other);
+#else
+  (void)pid;
+#endif
+}
+
+void Place(SDL_Window* win, const Placement& p) {
+  if (p.fullscreen) {
+    SDL_SetWindowPosition(win, p.x, p.y);  // picks the display
+    SDL_SetWindowFullscreen(win, true);
+  } else {
+    SDL_SetWindowFullscreen(win, false);
+    SDL_SetWindowSize(win, p.w, p.h);
+    SDL_SetWindowPosition(win, p.x, p.y);
+  }
+  SDL_SyncWindow(win);
+}
+
+}  // namespace
+
+void App::DrawDim(int dim) {
+  dim_ = dim;
+  Draw();
+  dim_ = 0;
+}
+
+int App::RunChild(const std::vector<std::string>& argv, std::vector<std::string>* messages) {
+  // The race takes over this window's place (SwARc's host link: the child
+  // gets <ID>_WINDOW and a socket <ID>_LINK_FD). This window fades to
+  // black, stays up (black) until the race says its window is "shown",
+  // then hides; when the race says "exit" it comes back black at the
+  // race window's last placement before the race window goes, and the
+  // main loop fades it in. Without a link (no child_id) it is only hidden.
+  const Placement before = WindowPlacement(win_);
+  const float density = SDL_GetWindowPixelDensity(win_);
+  std::fprintf(stderr, "menu: window %d,%d %dx%d%s before the race\n", before.x, before.y, before.w,
+               before.h, before.fullscreen ? " fullscreen" : "");
+  audio.Pause(true);
+  if (!fade_in_at_)  // else still black from the race before (a restart)
+    for (int i = 1; i <= 8; i++) DrawDim(255 * i / 8);
+  fade_in_at_ = 0;
+  int sv[2] = {-1, -1};
+  std::vector<std::string> env_s;
+  for (char** e = environ; *e; e++) env_s.push_back(*e);
+  if (!cfg_.child_id.empty() && socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == 0) {
+    fcntl(sv[0], F_SETFD, FD_CLOEXEC);
+    fcntl(sv[0], F_SETFL, fcntl(sv[0], F_GETFL) | O_NONBLOCK);
+    const std::string pw = cfg_.child_id + "_WINDOW=", pl = cfg_.child_id + "_LINK_FD=";
+    env_s.erase(std::remove_if(env_s.begin(), env_s.end(),
+                               [&](const std::string& v) { return !v.compare(0, pw.size(), pw) || !v.compare(0, pl.size(), pl); }),
+                env_s.end());
+    char buf[160];
+    std::snprintf(buf, sizeof buf, "%d,%d,%d,%d,%d,%.3f", before.x, before.y, before.w, before.h,
+                  before.fullscreen ? 1 : 0, density > 0 ? density : 1.0f);
+    env_s.push_back(pw + buf);
+    env_s.push_back(pl + std::to_string(sv[1]));
+  }
+  std::vector<char*> envp;
+  for (auto& v : env_s) envp.push_back(const_cast<char*>(v.c_str()));
+  envp.push_back(nullptr);
   std::vector<char*> args;
   for (auto& a : argv) args.push_back(const_cast<char*>(a.c_str()));
   args.push_back(nullptr);
-  audio.Pause(true);
   pid_t pid;
-  int rc = posix_spawn(&pid, args[0], nullptr, nullptr, args.data(), environ);
+  int rc = posix_spawn(&pid, args[0], nullptr, nullptr, args.data(), envp.data());
+  if (sv[1] >= 0) close(sv[1]);
   if (rc != 0) {
     SDL_Log("menu: cannot start %s (%d)", args[0], rc);
+    if (sv[0] >= 0) close(sv[0]);
     audio.Pause(false);
+    fade_in_at_ = SDL_GetTicks();
     return -1;
   }
-  SDL_HideWindow(win_);
+  if (sv[0] < 0) SDL_HideWindow(win_);
+  bool hidden = sv[0] < 0, covered = false;
+  Placement after = before;
+  std::string pending;
+  auto handle = [&](const std::string& line) {
+    if (line == "shown") {
+      YieldActivationTo(pid);
+      if (!hidden) SDL_HideWindow(win_);
+      hidden = true;
+      const char go = 'a';  // the race window takes the focus now
+      (void)!write(sv[0], &go, 1);
+      std::fprintf(stderr, "menu: race window shown, menu window hidden\n");
+    } else if (!line.compare(0, 7, "window ")) {
+      int fs = 0;
+      if (std::sscanf(line.c_str() + 7, "%d %d %d %d %d", &after.x, &after.y, &after.w, &after.h, &fs) == 5)
+        after.fullscreen = fs != 0;
+      std::fprintf(stderr, "menu: race window %d,%d %dx%d%s at the end\n", after.x, after.y, after.w, after.h,
+                   after.fullscreen ? " fullscreen" : "");
+    } else if (line == "exit") {
+      // Back at the race window's place, black, before that one goes.
+      Place(win_, after);
+      if (hidden) SDL_ShowWindow(win_);
+      hidden = false;
+      covered = true;
+      SDL_RaiseWindow(win_);
+      DrawDim(255);
+      DrawDim(255);
+      const char ack = 'x';
+      (void)!write(sv[0], &ack, 1);
+    } else if (messages) {
+      messages->push_back(line);
+    }
+  };
+  auto read_link = [&] {
+    if (sv[0] < 0) return;
+    char buf[512];
+    for (;;) {
+      ssize_t n = read(sv[0], buf, sizeof buf);
+      if (n <= 0) break;
+      pending.append(buf, size_t(n));
+    }
+    for (size_t nl; (nl = pending.find('\n')) != std::string::npos;) {
+      std::string line = pending.substr(0, nl);
+      pending.erase(0, nl + 1);
+      handle(line);
+    }
+  };
   int status = 0;
   for (;;) {
+    read_link();
     pid_t r = waitpid(pid, &status, WNOHANG);
     if (r == pid || r < 0) break;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_EVENT_QUIT) kill(pid, SIGTERM);
     }
-    SDL_Delay(50);
+    if (!hidden) DrawDim(255);  // vsync paces the loop
+    else SDL_Delay(10);
   }
-  SDL_ShowWindow(win_);
+  read_link();
+  if (sv[0] >= 0) close(sv[0]);
+  if (!covered) {  // no "exit" (no link, or the race crashed)
+    Place(win_, after);
+    SDL_ShowWindow(win_);
+    DrawDim(255);
+  }
   SDL_RaiseWindow(win_);
+  const Placement now = WindowPlacement(win_);
+  std::fprintf(stderr, "menu: window %d,%d %dx%d%s after the race\n", now.x, now.y, now.w, now.h,
+               now.fullscreen ? " fullscreen" : "");
   audio.Pause(false);
   hover_ = pressed_ = nullptr;
+  fade_in_at_ = SDL_GetTicks();
   return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
 

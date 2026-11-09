@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
   davi::AppConfig cfg;
   cfg.title = "Vakantie Racer";
   cfg.screenshot_path = shot;
+  cfg.child_id = "VRACER";  // the race (vracer) on SwARc
   if (const char* fs = std::getenv("VRACER_FULLSCREEN")) cfg.fullscreen = *fs && std::strcmp(fs, "window") && *fs != '0';
   if (!app.Init(cfg)) {
     std::fprintf(stderr, "vracer-menu: cannot open the window: %s\n", SDL_GetError());

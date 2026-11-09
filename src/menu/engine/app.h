@@ -51,6 +51,9 @@ struct AppConfig {
   int width = 800, height = 600;
   bool fullscreen = false;
   std::string screenshot_path;  // F12 / scripted shots
+  // Env prefix (SwARc game id, upper case) of the child RunChild starts,
+  // for SwARc's window handoff (<ID>_WINDOW, <ID>_LINK_FD); empty: none.
+  std::string child_id;
 };
 
 class App {
@@ -71,9 +74,11 @@ class App {
   // Runs `fn` after `ms` milliseconds (Delphi TTimer-like, one shot).
   void After(int ms, std::function<void()> fn, const void* owner = nullptr);
   void CancelTimers(const void* owner);
-  // Runs a child process while the window is hidden and audio paused;
-  // returns its exit status (-1 if it could not be started).
-  int RunChild(const std::vector<std::string>& argv);
+  // Runs a child process in this window's place (fade to black, the
+  // child's window where this one was, this one back where the child's
+  // ended), audio paused; returns its exit status (-1 if it could not be
+  // started). `messages` gets the child's own lines on the link.
+  int RunChild(const std::vector<std::string>& argv, std::vector<std::string>* messages = nullptr);
   void Screenshot(const std::string& path);
   void SetFocus(Widget* w) { focus_ = w; }
 
@@ -95,6 +100,7 @@ class App {
     std::string cmd, arg;
   };
   void Draw();
+  void DrawDim(int dim);  // Draw with black over it (0-255)
   void DrawForm(Screen& s, int ox, int oy);
   Screen* Top() const { return popups_.empty() ? cur_ : popups_.back(); }
   void Origin(Screen& s, int* ox, int* oy) const;
@@ -120,6 +126,9 @@ class App {
   bool quit_ = false;
   int exit_code_ = 0;
   AppConfig cfg_;
+  static constexpr Uint64 kFadeMs = 300;
+  int dim_ = 0;             // black over the frame (DrawDim)
+  Uint64 fade_in_at_ = 0;   // fading in from black since (after RunChild)
 };
 
 }  // namespace davi

@@ -14,6 +14,9 @@ add_library(davi_menu STATIC
   launcher/race_launcher.cpp)
 target_include_directories(davi_menu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(davi_menu PUBLIC SDL3::SDL3 Freetype::Freetype PkgConfig::MENU_FFMPEG)
+if(APPLE)
+  target_link_libraries(davi_menu PUBLIC objc)  # app.cpp: activation handover to the race
+endif()
 
 file(GLOB VRACER_MENU_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vracer/*.cpp)
 add_executable(vracer-menu ${VRACER_MENU_SOURCES})
