@@ -7,6 +7,8 @@
 - Prijzenwiel (0x48c43c): 20 lampjes, prijs = `[wofprizes]` lampje/2; Sunnies (0 = niets, -1 = volle turbo én -1 Sunny, zo staat het in het origineel) of tune-up 0-3. Garage: alleen SPECS0..3; reparatie 15 Sunnies (-10 schade), turbo-olie 20 (+10), `[GARAGE]` RepairCost/TurboOilCost/CriticalDamage/LowPoints.
 - Achtergrond van elk scherm = `copy(ClassName, 5, 8)` + `.bmp` (TfrmMainScreen -> MAINSCRE.bmp). Knopplaatjes per stand en de lettertypes Impact/Arial zitten als binaire props in de DFM's van Menu.exe. Help-knoppen alleen als `MenuData\VRacer.hlp` bestaat (op de CD niet).
 - Native race vanuit het menu (9 nov): SwARc miste `user32!WaitMessage` (het spel wacht ermee zolang zijn venster niet actief is); toegevoegd in SwARc-dx5 fbef58f.
+### Resolutie (9 nov 2026)
+- `raser.ini [PROGRAM] RESOLUTION` -> 0x434270 -> 0x491800(0, index): kopieert entry `index` van de modustabel 0x50a9e0 (21 x {w, h, bpp, lores, 0}) naar 0x50a9c8 (breedte), 0x50a9cc (hoogte), 0x50a9d0 (bpp). RESOLUTION 3, 4, 7, 8, 9 = index 9..13 (16-bit 3D). De game controleert de maat niet tegen EnumDisplayModes: elke 4:3-maat in 0x50a9c8/cc rendert scherp met meeschalende HUD (2442x1832 en 2618x1964 getest). Viewport 0x48e6e0 zet de clip-hoogte op h/w, projectie vierkant: horizontale FOV vast (Vert-), daarom alleen 4:3.
 ### Menu <-> game
 - Menu en game praten via `data/game.ini`: menu schrijft `[ETAPPE] etappe`, `[LEAGUE] league`, `[PLAYER] car` + upgrades (MOTOR, BANDEN, ABS, TURBO, VERSNELLINGSBAK); game schrijft `finished`, `damage`, `tracktime`, `position`, `[RACERS]` terug.
 - `[PLAYER] car` = index in `Car_cfg.ini [leagueN]` (0-9). `RACER_%d`-lookup in `init_player_car`.

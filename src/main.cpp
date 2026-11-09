@@ -15,8 +15,16 @@
 #include <cstring>
 #include <string>
 
+#include <SDL3/SDL.h>
+
+#include "gfx_settings.h"
 #include "runtime/log.h"
 #include "win32/process.h"
+
+namespace vracer {
+extern int g_render_w, g_render_h;  // gfx_resolution.cpp
+void ScreenSize(int* w, int* h);
+}
 
 int main(int argc, char** argv) {
   std::string game_dir, cd_dir, game_args;
@@ -60,5 +68,26 @@ int main(int argc, char** argv) {
   // The game has no frame limiter and the player's car speeds up per
   // frame: 60 fps as on the hardware of its day. VRACER_MAX_FPS=0 uncaps.
   game.max_fps = 60;
+
+  // Beeld-upgrades uit graphics.ini (Opties > Gevorderd): rendermaat,
+  // MSAA met alpha-to-coverage, mipmaps met trilinear en anisotropic
+  // filtering. F9 wisselt in de race alles tussen origineel en upgraded,
+  // F10 alleen de anti-aliasing, F11 alleen de filtering.
+  // VRACER_RESOLUTION=screen|original|WxH overschrijft de maat.
+  vracer::GfxSettings gs = vracer::LoadGfxSettings();
+  if (const char* r = std::getenv("VRACER_RESOLUTION")) gs.SetResolution(r);
+  vracer::g_render_w = gs.width;
+  vracer::g_render_h = gs.height;
+  if (gs.Screen()) vracer::ScreenSize(&vracer::g_render_w, &vracer::g_render_h);
+  game.gfx.msaa = gs.msaa;
+  game.gfx.alpha_to_coverage = gs.alpha_to_coverage;
+  game.gfx.mipmaps = gs.mipmaps;
+  game.gfx.anisotropy = gs.anisotropy;
+  game.gfx_enhanced = gs.upgrades;
+  game.gfx_key_all = SDL_SCANCODE_F9;
+  game.gfx_key_aa = SDL_SCANCODE_F10;
+  game.gfx_key_filter = SDL_SCANCODE_F11;
+  game.gfx_label_original = "Origineel";
+  game.gfx_label_enhanced = "Upgraded";
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }

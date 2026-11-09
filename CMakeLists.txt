@@ -15,7 +15,7 @@ add_subdirectory("${SWARC_DIR}" swarc)
 # spel.dat lifted to C++ in generated/ (recomp_lift, see CLAUDE.md).
 recomp_add_lifted(vracer_lifted "${CMAKE_CURRENT_SOURCE_DIR}/generated")
 if(TARGET vracer_lifted)
-  add_executable(vracer src/main.cpp $<TARGET_OBJECTS:vracer_lifted>)
+  add_executable(vracer src/main.cpp src/gfx_resolution.cpp $<TARGET_OBJECTS:vracer_lifted>)
   target_link_libraries(vracer PRIVATE recomp_win32 recomp_d3d7 recomp_dinput8 recomp_dsound)
   set_target_properties(vracer PROPERTIES ENABLE_EXPORTS ON)
 endif()
