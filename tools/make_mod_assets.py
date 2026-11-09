@@ -12,6 +12,8 @@ They stay on this Mac (mods/race/local and mods/menu/local are in
                        (the same delorean.d3d, so the UVs fit), else Europe
                        Racer's, else a plain silver sheet like the Z3's
     L0/L1/L2_anim.ini  LEAGUE_BONUS and TOURNAMENT_BONUS use those sheets
+    RAC5P0-5.WAV       the presenter's voice for the T key in a bonus car:
+                       short cheers cut from his menu lines (MenuData)
   mods/menu/local/
     CAR_FER/CAR_Z3/CAR_DEL.bmp   the bonus cars alone on an orange
                                  background (297x227, like CAR_*.bmp)
@@ -319,6 +321,57 @@ def wheel_row(car_cfg_text, cartype):
 
 # ---------------------------------------------------------------------- main
 
+# The presenter's cheers for the T key in a bonus car (ai_radio.cpp plays
+# RAC5P<i>.WAV for him): (MenuData file, start s, end s or None = to the
+# end). Cut at the end of a sentence (whisper word times, then the
+# quietest 20 ms nearby), as short as the racers' own RAC<n>P lines.
+PRESENTER_CLIPS = [
+    ("prf1tr1.wav", 0.0, 2.49),   # "Jongen, jongen, wat een geweldenaar."
+    ("prf1tr0.wav", 0.0, 1.01),   # "Geweldig!"
+    ("pigrac0.wav", 0.0, 3.68),   # "Ongelooflijk, wat een geweldenaar!"
+    ("prf2tr2.wav", 0.0, 2.35),   # "Jongen, jongen, jongen, jongen, jongen,"
+    ("prf1tr2.wav", 0.0, 2.0),    # "Ja ja ja ja, gefeliciteerd!"
+    ("nexttrck.wav", 0.0, None),  # "En ja hoor, het is weer go go go time!"
+]
+
+
+def presenter_clips(game_dir, out_dir):
+    import wave
+    menu = find_nocase(game_dir, "MenuData")
+    n = 0
+    for i, (name, start, end) in enumerate(PRESENTER_CLIPS):
+        src = find_nocase(menu, name) if menu else None
+        if not src:
+            print("  %s niet gevonden, overgeslagen" % name)
+            continue
+        with wave.open(src) as w:
+            params = w.getparams()
+            data = w.readframes(w.getnframes())
+        if params.sampwidth != 1 or params.nchannels != 1:
+            print("  %s: onverwacht formaat, overgeslagen" % name)
+            continue
+        rate = params.framerate
+        level = lambda a, b: sum(abs(x - 128) for x in data[a:b])
+        a = int(start * rate)
+        b = len(data) if end is None else int(end * rate)
+        if end is not None:  # the quietest 20 ms within 150 ms of the cut
+            win, span = rate // 50, int(0.15 * rate)
+            best = min(range(max(a + win, b - span), min(len(data) - win, b + span), rate // 200),
+                       key=lambda t: level(t, t + win), default=b)
+            b = best + win // 2
+        clip = bytearray(data[a:b])
+        fade = min(len(clip) // 4, rate // 100)  # 10 ms in and out
+        for k in range(fade):
+            f = k / fade
+            clip[k] = int(128 + (clip[k] - 128) * f)
+            clip[-1 - k] = int(128 + (clip[-1 - k] - 128) * f)
+        with wave.open(os.path.join(out_dir, "RAC5P%d.WAV" % i), "wb") as o:
+            o.setparams(params)
+            o.writeframes(bytes(clip))
+        n += 1
+    print("RAC5P0-%d.WAV: de presentator (T in een bonusauto), %d fragmenten" % (n - 1, n))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--game-dir", default=os.path.join(ROOT, "iso", "data"))
@@ -364,6 +417,8 @@ def main():
             f.write("; Gemaakt door tools/make_mod_assets.py: de lak van de Z3 en de DeLorean.\r\n"
                     "[LEAGUE_BONUS]\r\n0=Z3.d3d,bonus_z3.pcx\r\n\r\n"
                     "[TOURNAMENT_BONUS]\r\n0=DeLorean.d3d,bonus_dl.pcx\r\n")
+
+    presenter_clips(a.game_dir, race_out)
 
     if a.skip_menu:
         return
