@@ -3,6 +3,8 @@
 // vehicle swap) and has a setting per car (mods/race/vracer.ini [Cameras]),
 // so the bonus cars and a car with a trailer get a proper camera.
 
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "game/race_setup.h"
@@ -36,12 +38,12 @@ uint32_t Bits(float f) {
 // The chase camera of modes 5, 6, 7, 9 and 11 (0x4270B0 case 5 and the
 // code after 0x42710C) with our own height and distance: camera offset
 // behind the car, looking at a point 10 above it, spring dampening.
-void ChaseCamera(recomp::Ctx& c, uint32_t mode, float height, float distance) {
+void ChaseCamera(recomp::Ctx& c, uint32_t mode, float height, float distance, float side = 0) {
   Wr32(kCameraMode, mode);
   uint32_t cam = Rd32(kCameras) + Rd32(kActiveCamera) * 0x178;
   uint32_t obj = Rd32(kObjects) + Rd32(kTargetObject) * 0xE4;
   c.ecx = cam;  // SetPositionOffset(vec3{0, height, distance})
-  recomp::CallGuest(c, 0x47F310, {0, Bits(height), Bits(distance)});
+  recomp::CallGuest(c, 0x47F310, {Bits(side), Bits(height), Bits(distance)});
   recomp::CallGuest(c, 0x426430, {0});
   Wr32(cam + 0x80, 0);
   c.ecx = cam;  // LockTarget(object model, vec3{0, 10, 0})
@@ -72,6 +74,16 @@ void f_004270B0(::recomp::Ctx& c) {
     return;
   }
   int vehicle = p.vehicle;
+  // Test hook: VRACER_CHASE_CAMERA=side,height,distance (e.g. "70,15,-10"
+  // looks at the car from the side, to check a trailer's hitch).
+  if (const char* t = std::getenv("VRACER_CHASE_CAMERA")) {
+    float x, h, d;
+    if (std::sscanf(t, "%f,%f,%f", &x, &h, &d) == 3) {
+      ChaseCamera(c, mode, h, d, x);
+      c.esp += 4;  // ret
+      return;
+    }
+  }
   if (vracer::g_player_trailer && !PullsTrailerByItself(vehicle) && vracer::g_race.has_trailer_camera) {
     ChaseCamera(c, mode, vracer::g_race.trailer_camera.height, vracer::g_race.trailer_camera.distance);
     c.esp += 4;  // ret
