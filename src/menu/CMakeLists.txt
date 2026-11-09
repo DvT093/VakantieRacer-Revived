@@ -18,4 +18,6 @@ target_link_libraries(davi_menu PUBLIC SDL3::SDL3 Freetype::Freetype PkgConfig::
 file(GLOB VRACER_MENU_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vracer/*.cpp)
 add_executable(vracer-menu ${VRACER_MENU_SOURCES})
 target_link_libraries(vracer-menu PRIVATE davi_menu)
+# src/gfx_settings.h (graphics.ini), shared with the race.
+target_include_directories(vracer-menu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set_target_properties(vracer-menu PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

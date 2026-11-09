@@ -6,6 +6,7 @@
 #include <string>
 
 #include "engine/video.h"
+#include "gfx_settings.h"
 #include "vracer/game.h"
 
 namespace vr {
@@ -219,6 +220,7 @@ class OptionsScreen : public VrScreen {  // TfrmOptions (OPTIONS.bmp)
   void Video();
   void Control(int device);
   Player temp_;          // edited copy, stored on OK
+  vracer::GfxSettings gfx_;  // graphics.ini, stored on OK (Gevorderd)
   davi::Sound sample_;   // wavIrritatingAsHell ("trin.wav")
 };
 
@@ -242,6 +244,21 @@ class SensitivityPopup : public VrScreen {  // TfrmJoystickSettings / TfrmWheelS
   void Edit(bool wheel, int value);
   void OnClick(davi::Widget& w) override;
   int value = 50;
+};
+
+// Opties > Gevorderd: de beeld-upgrades van de port (graphics.ini).
+class DisplaySettingsPopup : public VrScreen {  // TfrmDisplaySettings
+ public:
+  explicit DisplaySettingsPopup(Game& g);
+  ~DisplaySettingsPopup() override;
+  void Edit(const vracer::GfxSettings& s);
+  void OnShow() override;
+  void OnClick(davi::Widget& w) override;
+  vracer::GfxSettings settings;
+
+ private:
+  void Captions();
+  SDL_Surface* bg_ = nullptr;
 };
 
 // TfrmMenuDialog: message box. Buttons: 1 OK, 2 Annuleer, 4 Ja, 8 Nee.

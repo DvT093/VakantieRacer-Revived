@@ -101,6 +101,7 @@ void OptionsScreen::OnShow() {
   form.SetVisible("imgSoundOn", temp_.fx_volume > 0);
   form.SetVisible("imgVoiceOn", temp_.voices_volume > 0);
   Control(temp_.device);
+  gfx_ = vracer::LoadGfxSettings();
   game.app.SetFocus(form.Get("btnOk"));
 }
 
@@ -172,8 +173,13 @@ void OptionsScreen::OnClick(davi::Widget& w) {
       });
     }
   } else if (n == "btnVideoAdvanced") {
-    // TfrmDisplaySettings (video card, resolution, filtering): not in the
-    // native port; the race renders through Metal.
+    // TfrmDisplaySettings (0x47D980): in the port the image upgrades of
+    // graphics.ini, on a copy that Options OK stores.
+    auto* ds = game.Screen<DisplaySettingsPopup>();
+    ds->Edit(gfx_);
+    game.app.ShowModal(ds, [this, ds](int r) {
+      if (r == 1) gfx_ = ds->settings;
+    });
   } else if (n == "btnOk") {
     // CopyControlsToSettings (0x47cf7c).
     bool d3 = form.W("chkVideo3d").checked;
@@ -186,6 +192,7 @@ void OptionsScreen::OnClick(davi::Widget& w) {
     temp_.voices_volume = form.W("sldrVoice").pos;
     if (Player* p = game.Cur()) *p = temp_;
     game.SavePlayers();
+    vracer::SaveGfxSettings(gfx_);
     game.StartMusic();
     game.Goto(game.Screen<MainScreen>());
   } else if (n == "btnCancel") {
