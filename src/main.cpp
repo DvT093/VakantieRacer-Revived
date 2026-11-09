@@ -90,6 +90,7 @@ int main(int argc, char** argv) {
                  p.trailer_set ? p.trailer.c_str() : "standard", mods_dir.empty() ? "-" : mods_dir.c_str());
   }
 
+  vracer::g_race.game_dir = game_dir;
   recomp::win32::GameConfig game;
   game.id = "vracer";
   game.guest_dir = "C:\\Vakantie Racer\\data";

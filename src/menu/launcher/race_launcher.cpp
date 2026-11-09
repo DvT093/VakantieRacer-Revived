@@ -2,6 +2,7 @@
 
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <map>
 
@@ -108,9 +109,17 @@ RaceResult RaceLauncher::Run(davi::App& app) {
   pending_.clear();
   for (auto& f : before_race) f(ini);
   std::string out = install_.WritePath("game.ini");
-  if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
-  for (auto& [file, other] : others) other.Save(install_.WritePath(file));
-  int st = app.RunChild(argv_);
+  int st;
+  for (;;) {
+    if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
+    for (auto& [file, other] : others) other.Save(install_.WritePath(file));
+    std::vector<std::string> messages;
+    st = app.RunChild(argv_, &messages);
+    // "Opnieuw starten" in the race's pause menu: the same race again,
+    // from the files as they were before it (the race wrote its results).
+    if (std::find(messages.begin(), messages.end(), "restart") == messages.end()) break;
+    SDL_Log("menu: race restarted");
+  }
   RaceResult r = ReadResult();
   r.started = st >= 0;
   r.exit_status = st;

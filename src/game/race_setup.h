@@ -16,6 +16,7 @@ struct ChaseCamera {
 
 struct RaceSetup {
   red::PlayerSetup player;
+  std::string game_dir;  // the CD's data folder (spel.dat, rcs.IMG)
   // mods/race/vracer.ini [Cameras]: <car>=height,distance per vehicle, and
   // "trailer" for a car pulling a trailer it does not have by itself.
   std::map<int, ChaseCamera> cameras;

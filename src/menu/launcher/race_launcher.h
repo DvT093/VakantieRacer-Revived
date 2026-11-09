@@ -62,7 +62,8 @@ class RaceLauncher {
   // Extra writers (mods): called after the flow's own values, before saving.
   std::vector<std::function<void(davi::IniFile&)>> before_race;
 
-  // Writes game.ini, runs the race (window hidden) and reads the results.
+  // Writes game.ini, runs the race in the menu window's place (again, from
+  // the same files, when the race asks for a restart) and reads the results.
   RaceResult Run(davi::App& app);
   // Only reads the result keys of the current game.ini.
   RaceResult ReadResult() const;
