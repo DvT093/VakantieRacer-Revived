@@ -51,12 +51,16 @@ struct GfxSettings {
   }
 };
 
-// <user dir>/graphics.ini, user dir = $XDG_DATA_HOME/vracer (zoals SwARc).
-inline std::string GfxSettingsPath() {
-  if (const char* x = std::getenv("XDG_DATA_HOME"); x && *x) return std::string(x) + "/vracer/graphics.ini";
+// De speldata-map van de port: $XDG_DATA_HOME/vracer, anders
+// ~/Library/Application Support/vracer (zelfde regel als SwARc's DataDir).
+inline std::string UserDir() {
+  if (const char* x = std::getenv("XDG_DATA_HOME"); x && *x) return std::string(x) + "/vracer";
   const char* home = std::getenv("HOME");
-  return std::string(home ? home : ".") + "/Library/Application Support/vracer/graphics.ini";
+  return std::string(home ? home : ".") + "/Library/Application Support/vracer";
 }
+
+// <user dir>/graphics.ini.
+inline std::string GfxSettingsPath() { return UserDir() + "/graphics.ini"; }
 
 inline GfxSettings LoadGfxSettings(const std::string& path = GfxSettingsPath()) {
   GfxSettings s;

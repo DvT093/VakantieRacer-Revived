@@ -1,15 +1,18 @@
 // vracer: Vakantie Racer (Davilex, 2000), natively.
 //
-//   vracer [--game-dir DIR] [-- GAME ARGS...]
+//   vracer [--game-dir DIR] [--mods DIR] [-- GAME ARGS...]
 //
 // DIR is the game's data folder from the user's own CD (the folder with
 // spel.dat, rcs.IMG, game.ini). Defaults to $VRACER_GAME_DIR.
+// --mods is the race mod folder (default: mods/race of the project this
+// binary was built in, or $VRACER_MODS); see src/red/race_mods.h.
 // The disc itself (the game checks for it) is the folder above DIR, the
 // root of the extracted CD; override with --cd-dir.
 // Set VRACER_TRACE=1 to log every HLE call.
 
 #include <sys/stat.h>
 
+#include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -17,7 +20,9 @@
 
 #include <SDL3/SDL.h>
 
+#include "game/race_setup.h"
 #include "gfx_settings.h"
+#include "red/race_mods.h"
 #include "runtime/log.h"
 #include "win32/process.h"
 
@@ -27,20 +32,23 @@ void ScreenSize(int* w, int* h);
 }
 
 int main(int argc, char** argv) {
-  std::string game_dir, cd_dir, game_args;
+  std::string game_dir, cd_dir, game_args, mods_dir;
   if (const char* e = std::getenv("VRACER_GAME_DIR")) game_dir = e;
+  if (const char* e = std::getenv("VRACER_MODS")) mods_dir = e;
   for (int i = 1; i < argc; i++) {
     if (!std::strcmp(argv[i], "--game-dir") && i + 1 < argc) {
       game_dir = argv[++i];
     } else if (!std::strcmp(argv[i], "--cd-dir") && i + 1 < argc) {
       cd_dir = argv[++i];
+    } else if (!std::strcmp(argv[i], "--mods") && i + 1 < argc) {
+      mods_dir = argv[++i];
     } else if (!std::strcmp(argv[i], "--")) {
       for (i++; i < argc; i++) {
         if (!game_args.empty()) game_args += ' ';
         game_args += argv[i];
       }
     } else {
-      std::fprintf(stderr, "usage: %s [--game-dir DIR] [-- GAME ARGS...]\n", argv[0]);
+      std::fprintf(stderr, "usage: %s [--game-dir DIR] [--mods DIR] [-- GAME ARGS...]\n", argv[0]);
       return 2;
     }
   }
@@ -56,6 +64,30 @@ int main(int argc, char** argv) {
   if (stat(exe.c_str(), &st) != 0) {
     std::fprintf(stderr, "vracer: %s not found\n", exe.c_str());
     return 2;
+  }
+
+  // Race mods (mods/race): ini keys, textures and the vehicle swap into
+  // SwARc's overlay, before the game reads anything.
+  if (mods_dir.empty()) {
+    char self[PATH_MAX];
+    if (realpath(argv[0], self)) {
+      std::string root = self;  // <project>/out/build/release/vracer
+      for (int up = 0; up < 4; up++) root = root.substr(0, root.find_last_of('/'));
+      if (stat((root + "/mods/race").c_str(), &st) == 0) mods_dir = root + "/mods/race";
+    }
+  }
+  {
+    red::RaceModConfig rm;
+    rm.game_dir = game_dir;
+    rm.overlay_dir = vracer::UserDir() + "/install";
+    if (!mods_dir.empty()) rm.mod_dirs = {mods_dir, mods_dir + "/local"};
+    rm.port_files = {"vracer.ini"};
+    rm.record_files = {{"cars%d.dat", 0x7C}, {"Phys%d.dat", 0xF0}};
+    vracer::g_race.player = red::ApplyRaceMods(rm);
+    if (!mods_dir.empty()) vracer::LoadRaceSettings(mods_dir + "/vracer.ini");
+    const red::PlayerSetup& p = vracer::g_race.player;
+    std::fprintf(stderr, "vracer: car %d, vehicle %d, trailer %s (mods %s)\n", p.car, p.vehicle,
+                 p.trailer_set ? p.trailer.c_str() : "standard", mods_dir.empty() ? "-" : mods_dir.c_str());
   }
 
   recomp::win32::GameConfig game;

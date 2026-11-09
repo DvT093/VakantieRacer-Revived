@@ -15,7 +15,12 @@ add_subdirectory("${SWARC_DIR}" swarc)
 # spel.dat lifted to C++ in generated/ (recomp_lift, see CLAUDE.md).
 recomp_add_lifted(vracer_lifted "${CMAKE_CURRENT_SOURCE_DIR}/generated")
 if(TARGET vracer_lifted)
-  add_executable(vracer src/main.cpp src/gfx_resolution.cpp $<TARGET_OBJECTS:vracer_lifted>)
+  # src/game: hand-written replacements of lifted functions (lifter.manifest
+  # "replace"), one file per original source file; src/red: RED-engine code
+  # shared with other Davilex racers (race mod layer).
+  file(GLOB VRACER_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/red/*.cpp)
+  add_executable(vracer src/main.cpp src/gfx_resolution.cpp ${VRACER_GAME_SOURCES} $<TARGET_OBJECTS:vracer_lifted>)
+  target_include_directories(vracer PRIVATE src)
   target_link_libraries(vracer PRIVATE recomp_win32 recomp_d3d7 recomp_dinput8 recomp_dsound)
   set_target_properties(vracer PROPERTIES ENABLE_EXPORTS ON)
 endif()
