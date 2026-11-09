@@ -126,6 +126,7 @@ void QuickRaceScreen::OnClick(davi::Widget& w) {
   else if (davi::Lower(w.name) == "btnnextcar" || davi::Lower(w.name) == "btnprevcar") {
     int from = car_ < 0 ? SlotCar(game, char_) : car_;
     SetCar(game.NextCar(from, davi::Lower(w.name) == "btnnextcar" ? 1 : -1));
+    SetTrailer(-1);  // another car: its own trailer again
   } else if (davi::Lower(w.name) == "btntrailer") {
     int n = int(game.trailers.size());
     SetTrailer((ChosenTrailer(game, char_, trailer_) + 1) % n);

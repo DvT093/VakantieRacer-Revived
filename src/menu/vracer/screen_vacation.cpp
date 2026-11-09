@@ -62,12 +62,18 @@ void CharacterScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
 
 void CharacterScreen::OnClick(davi::Widget& w) {
   int n = int(game.chars.size());
-  if (w.name == "btnNextChar") SetChar((char_ + 1) % n);
-  else if (w.name == "btnPrevChar") SetChar((char_ + n - 1) % n);
+  // Port: another character or car takes its own trailer again (the
+  // Garage's Caravan button chooses another until the next change).
+  auto own_trailer = [&]() {
+    if (Player* p = game.Cur()) p->Res(char_).trailer = -1;
+  };
+  if (w.name == "btnNextChar") SetChar((char_ + 1) % n), own_trailer();
+  else if (w.name == "btnPrevChar") SetChar((char_ + n - 1) % n), own_trailer();
   else if (davi::Lower(w.name) == "btnnextcar" || davi::Lower(w.name) == "btnprevcar") {
     Player* p = game.Cur();
     int car = p ? p->Res(char_).car : -1;
     SetCar(game.NextCar(car < 0 ? SlotCar(game, char_) : car, davi::Lower(w.name) == "btnnextcar" ? 1 : -1));
+    own_trailer();
   } else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
   else if (w.name == "btnBack") game.Back();
   else if (w.name == "btnHelp") game.Voice("jac_hlp", 3);
