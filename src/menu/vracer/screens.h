@@ -46,8 +46,11 @@ class QuickRaceScreen : public VrScreen {  // TfrmQuickRace
  private:
   void SetChar(int i);
   void SetTrack(int i);
-  bool BonusUnlocked();
-  int char_ = 0, track_ = 0;
+  // Port: the autoselector row (btnPrevCar/btnNextCar) and the trailer
+  // button (btnTrailer); -1 = his own car / the standard trailer.
+  void SetCar(int car);
+  void SetTrailer(int trailer);
+  int char_ = 0, track_ = 0, car_ = -1, trailer_ = -1;
 };
 
 class ResultsScreen : public VrScreen {  // TfrmResults
@@ -90,6 +93,7 @@ class CharacterScreen : public VrScreen {  // TfrmCharacter (CHARACTE.bmp)
 
  private:
   void SetChar(int i);
+  void SetCar(int car);  // port: autoselector row, -1 = his own car
   int char_ = 0;
 };
 
@@ -116,6 +120,7 @@ class GarageScreen : public VrScreen {  // TfrmGarage (GARAGE.bmp)
  private:
   void UpdateButtons();
   void ShowItem();
+  void ShowTrailer();  // port: btnTrailer, lblTrailer, imgTrailer
   void Buy();
   CharResult& Res();
   int item_ = 0;     // 0 none, 1 tune-up, 2 repair, 3 turbo oil
@@ -278,6 +283,14 @@ void AskForNewPlayer(Game& g, std::function<void()> done);
 // Starts the race (StartInfo first when enabled), takes in the results
 // (Game::last, ranking, playerpos, rrflags) and calls `after`.
 void StartRace(Game& g, int char_index, int track_index, std::function<void()> after);
+// The car slot of a character (his own car; the bonus entry: the Ferrari).
+int SlotCar(Game& g, int char_index);
+// The car he drives and the trailer RefName for the race, from a choice
+// (-1 = his own car / the standard trailer of his car slot).
+int ChosenVehicle(Game& g, int char_index, int car);
+int ChosenTrailer(Game& g, int char_index, int trailer);  // index into Game::trailers
+// Trailer button text: "<name>" of the chosen trailer.
+void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer);
 void TakeResults(Game& g, int char_index, int track_index);
 
 }  // namespace vr

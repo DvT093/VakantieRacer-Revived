@@ -26,6 +26,23 @@ struct Character {
   int speed = 0, accell = 0, handling = 0, brakes = 0;
 };
 
+// static.ini [carN] (mods/menu): a car of the game's car table that the
+// autoselector offers. N is the car number (game.ini [PLAYER] CAR/VEHICLE).
+struct Car {
+  int index = 0;
+  std::string name;
+  std::string carbitmap;  // the car alone (CAR_*.bmp, 297x227)
+  int speed = 0, accell = 0, handling = 0, brakes = 0;
+  std::string trailer;  // the game's own trailer for this car slot ("" none)
+  bool bonus = false;   // only once every character won the Vakantie Race (or Alles vrij)
+};
+
+// static.ini [TRAILERS] (mods/menu): what a car can pull. ref is the car
+// table RefName the race takes (game.ini [PLAYER] TRAILER), NONE for none.
+struct Trailer {
+  std::string ref, name, bitmap;
+};
+
 // static.ini [TRACKn]
 struct Track {
   int index = 0;
@@ -60,6 +77,9 @@ struct CharResult {
   bool won = false;      // won the final with this character
   int damage = 0, turbo = 0;
   bool tuneup[4] = {};   // Motor, Banden, ABS, Versnellingsbak (one race)
+  // Port: the car he drives (-1 = his own) and the trailer (-1 = the
+  // standard one of his car, else an index into Game::trailers).
+  int car = -1, trailer = -1;
 };
 
 // One player (the original kept these in binary save files SaveGame<N>.rcr;
@@ -75,8 +95,12 @@ struct Player {
   int joy_sensitivity = 50, wheel_sensitivity = 50;
   int gamma = 0;
   bool alpha = true, bilinear = true, waitvbl = false;
-  // Quick Race selection
+  // Quick Race selection; car/trailer as in CharResult.
   int qr_char = 0, qr_track = 0;
+  int qr_car = -1, qr_trailer = -1;
+  // Port: "Alles vrij" (Opties): the bonus cars and every Vakantie Race
+  // track open, without changing the progress itself.
+  bool unlock_all = false;
   // Vakantie Race
   int current_char = 4, current_track = 0;
   std::vector<CharResult> results;  // one per character
@@ -123,6 +147,8 @@ class Game {
   davi::LayeredIni stat;  // static.ini
   davi::LayeredIni menu;  // menu.ini (read)
   std::vector<Character> chars;
+  std::vector<Car> cars;          // by car number (missing numbers: index -1)
+  std::vector<Trailer> trailers;  // [0] = none
   std::vector<Track> tracks;
   std::vector<TuneUp> tuneups;
   std::vector<Prize> prizes;
@@ -142,6 +168,20 @@ class Game {
   red::RaceResult last;
   void NewPlayer(const std::string& name);
   int CharByIndexInGame(int car) const;  // -1 if none
+
+  // Autoselector and trailers (port).
+  const Car* CarInfo(int car) const;   // nullptr if [carN] is missing
+  // Every character won the Vakantie Race (Menu.exe 0x46c808), or Alles vrij.
+  bool BonusUnlocked();
+  bool CarAvailable(int car);
+  // The next/previous available car after `car` (wraps).
+  int NextCar(int car, int dir);
+  // Index into trailers of a RefName (0 = none if unknown).
+  int TrailerIndex(const std::string& ref) const;
+  // The car's picture alone, scaled to w x h (cached; nullptr if missing).
+  SDL_Surface* CarPicture(int car, int w, int h);
+  // A trailer's small picture (nullptr if missing).
+  SDL_Surface* TrailerPicture(int trailer);
 
   std::string Str(int n) const;              // menu.ini [MENUSTRINGS]
   std::string Ordinal(int pos1) const;       // [ordinalnumbers]: 1 -> "1e"
@@ -170,6 +210,7 @@ class Game {
  private:
   void PlayerIo(davi::IniFile& f, const std::string& sec, Player& p, bool save);
   std::map<std::string, std::unique_ptr<davi::Screen>> screens_;
+  std::map<std::string, SDL_Surface*> scaled_;
   std::map<davi::Screen*, davi::Screen*> prev_;
   std::string players_path_;
 };

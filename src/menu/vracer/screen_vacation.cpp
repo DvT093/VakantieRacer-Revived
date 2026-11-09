@@ -27,9 +27,9 @@ void CharacterScreen::SetChar(int i) {
   form.SetCaption("lblTitle", c.name);
   form.SetCaption("lblTextBlock", c.story);
   form.SetPicture("imgCharacter", game.assets.Bitmap(c.bitmap));
-  form.SetPicture("imgCar", game.assets.Bitmap(c.carbitmap));
   Player* p = game.Cur();
   CharResult r = p ? p->Res(i) : CharResult{};
+  SetCar(r.car);
   for (int s = 0; s < 6; s++) form.SetVisible("imgSun" + std::to_string(s), s < r.tracktodrive || r.won);
   game.app.CancelTimers(this);
   std::string wav = c.introwav;
@@ -37,22 +37,38 @@ void CharacterScreen::SetChar(int i) {
   game.app.After(1000, [&g, wav]() { g.Voice(wav); }, this);
 }
 
+// Port: the car he drives (CharResult::car, -1 = his own): picture and bars.
+void CharacterScreen::SetCar(int car) {
+  int slot = SlotCar(game, char_);
+  if (car == slot || !game.CarAvailable(car)) car = -1;
+  if (Player* p = game.Cur()) p->Res(char_).car = car;
+  const Car* info = car >= 0 ? game.CarInfo(car) : nullptr;
+  form.SetPicture("imgCar", game.assets.Bitmap(info ? info->carbitmap : game.chars[char_].carbitmap));
+}
+
 void CharacterScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
   davi::Widget* bars = form.Get("imgBars");
   if (!bars) return;
   const Character& c = game.chars[char_];
+  Player* p = game.Cur();
+  int car = p ? p->Res(char_).car : -1;
+  const Car* info = car >= 0 ? game.CarInfo(car) : nullptr;
   int x = ox + bars->r.x + 10, y = oy + bars->r.y;
-  DrawDots(game, canvas, x, y + 10, c.speed, 0);
-  DrawDots(game, canvas, x, y + 38, c.accell, 0);
-  DrawDots(game, canvas, x, y + 66, c.handling, 0);
-  DrawDots(game, canvas, x, y + 94, c.brakes, 0);
+  DrawDots(game, canvas, x, y + 10, info ? info->speed : c.speed, 0);
+  DrawDots(game, canvas, x, y + 38, info ? info->accell : c.accell, 0);
+  DrawDots(game, canvas, x, y + 66, info ? info->handling : c.handling, 0);
+  DrawDots(game, canvas, x, y + 94, info ? info->brakes : c.brakes, 0);
 }
 
 void CharacterScreen::OnClick(davi::Widget& w) {
   int n = int(game.chars.size());
   if (w.name == "btnNextChar") SetChar((char_ + 1) % n);
   else if (w.name == "btnPrevChar") SetChar((char_ + n - 1) % n);
-  else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
+  else if (davi::Lower(w.name) == "btnnextcar" || davi::Lower(w.name) == "btnprevcar") {
+    Player* p = game.Cur();
+    int car = p ? p->Res(char_).car : -1;
+    SetCar(game.NextCar(car < 0 ? SlotCar(game, char_) : car, davi::Lower(w.name) == "btnnextcar" ? 1 : -1));
+  } else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
   else if (w.name == "btnBack") game.Back();
   else if (w.name == "btnHelp") game.Voice("jac_hlp", 3);
   else if (w.name == "btnOk") {
@@ -89,7 +105,8 @@ void TrackScreen::SetTrack(int i) {
   const Track& t = game.tracks[i];
   Player* p = game.Cur();
   CharResult r = p ? p->Res(p->current_char) : CharResult{};
-  int last = r.won ? int(game.tracks.size()) - 1 : r.tracktodrive;
+  // Port: Alles vrij opens every track (the progress itself stays).
+  int last = r.won || (p && p->unlock_all) ? int(game.tracks.size()) - 1 : r.tracktodrive;
   form.SetEnabled("btnPrevTrack", i > 0);
   form.SetEnabled("btnNextTrack", i < last);
   int q = p && p->difficulty < int(t.qualify.size()) ? t.qualify[p->difficulty] : 0;
@@ -164,9 +181,15 @@ void GarageScreen::ShowItem() {
   }
 }
 
+void GarageScreen::ShowTrailer() {
+  Player* p = game.Cur();
+  if (p) ShowTrailerChoice(game, form, p->current_char, Res().trailer);
+}
+
 void GarageScreen::OnShow() {
   UpdateButtons();
   ShowItem();
+  ShowTrailer();
   // Jacques (0x4817a4): [WAVS] 0 intro, 1 heavy damage, 2 few Sunnies,
   // then 4 (bad) or 3 (good) depending on the last race.
   CharResult& r = Res();
@@ -235,6 +258,15 @@ void GarageScreen::OnClick(davi::Widget& w) {
   else if (w.name == "btnRepair") item_ = 2, ShowItem();
   else if (w.name == "btnOil") item_ = 3, ShowItem();
   else if (w.name == "btnBuyTuneUp") Buy();
+  else if (davi::Lower(w.name) == "btntrailer") {
+    // Port: the trailer for this race (kept per character).
+    Player* p = game.Cur();
+    if (!p) return;
+    int n = int(game.trailers.size());
+    Res().trailer = (ChosenTrailer(game, p->current_char, Res().trailer) + 1) % n;
+    game.SavePlayers();
+    ShowTrailer();
+  }
   else if (w.name == "btnCancel") game.Back();
   else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
   else if (w.name == "btnHelp") game.Voice("jac_hlp", 3);

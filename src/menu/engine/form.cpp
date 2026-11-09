@@ -282,6 +282,12 @@ bool Form::Build(Skin& skin, const std::string& form_cls, const std::string& mod
         if (wd->picture && !mod.Has(sec, "Width")) wd->r.w = wd->picture->w, wd->r.h = wd->picture->h;
       }
       if (mod.Has(sec, "OnClick")) wd->onclick = mod.Get(sec, "OnClick");
+      // Images: drawn with a transparent colour (default: the bottom-left
+      // pixel), centred in or stretched to the component.
+      if (mod.Has(sec, "Transparent")) wd->pic_transparent = mod.GetInt(sec, "Transparent") != 0;
+      if (mod.Has(sec, "TransparentColor")) wd->key_rgb = int(ParseNum(mod.Get(sec, "TransparentColor")));
+      if (mod.Has(sec, "Center")) wd->center = mod.GetInt(sec, "Center") != 0, wd->autosize = !wd->center;
+      if (mod.Has(sec, "Stretch")) wd->stretch = mod.GetInt(sec, "Stretch") != 0;
     }
   }
   return true;

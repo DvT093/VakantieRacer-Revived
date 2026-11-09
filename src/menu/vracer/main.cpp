@@ -59,6 +59,9 @@ int main(int argc, char** argv) {
     return 1;
   }
   davi::Assets assets;
+  // mods/menu/local: pictures made from your own CD by
+  // tools/make_mod_assets.py (not in git), before the mods themselves.
+  if (!mods_dir.empty()) assets.AddDir(mods_dir + "/local");
   if (!mods_dir.empty()) assets.AddDir(mods_dir);
   assets.AddDir(davi::FindNoCase(game_dir, "MenuData"));
 

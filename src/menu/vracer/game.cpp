@@ -133,6 +133,33 @@ bool Game::Load() {
     c.brakes = stat.GetInt(s, "brakes");
     chars.push_back(c);
   }
+  // Port: the autoselector's cars and the trailers (mods/menu/static.ini).
+  for (int i = 0; i < 32; i++) {
+    std::string s = "car" + std::to_string(i);
+    if (!stat.HasSection(s)) continue;
+    Car c;
+    c.index = i;
+    c.name = stat.Get(s, "name");
+    c.carbitmap = stat.Get(s, "carbitmap");
+    c.speed = stat.GetInt(s, "speed");
+    c.accell = stat.GetInt(s, "accell");
+    c.handling = stat.GetInt(s, "handling");
+    c.brakes = stat.GetInt(s, "brakes");
+    c.trailer = stat.Get(s, "trailer");
+    c.bonus = stat.GetInt(s, "bonus") != 0;
+    if (int(cars.size()) <= i) cars.resize(i + 1);
+    cars[i] = c;
+  }
+  for (size_t i = 0; i < cars.size(); i++)
+    if (cars[i].name.empty()) cars[i].index = -1;
+  int ntrailers = stat.GetInt("TRAILERS", "COUNT", 0);
+  for (int i = 0; i < ntrailers; i++) {
+    auto v = Split(stat.Get("TRAILERS", std::to_string(i)), ',');
+    v.resize(3);
+    trailers.push_back({v[0], v[1], v[2]});
+  }
+  if (trailers.empty()) trailers.push_back({"NONE", "geen", ""});
+
   int ntracks = stat.GetInt("GENERAL", "TRACKCOUNT", 0);
   for (int i = 0; i < ntracks || stat.HasSection("TRACK" + std::to_string(i)); i++) {
     std::string s = "TRACK" + std::to_string(i);
@@ -224,9 +251,13 @@ void Game::PlayerIo(davi::IniFile& f, const std::string& s, Player& p, bool save
   flag("waitvbl", p.waitvbl);
   num("qrchar", p.qr_char);
   num("qrtrack", p.qr_track);
+  num("qrcar", p.qr_car);
+  num("qrtrailer", p.qr_trailer);
+  flag("unlockall", p.unlock_all);
   num("currentchar", p.current_char);
   num("currenttrack", p.current_track);
-  // Per character: tracktodrive,money,won,damage,turbo,motor,banden,abs,versnellingsbak
+  // Per character: tracktodrive,money,won,damage,turbo,motor,banden,abs,
+  // versnellingsbak, then (port) car and trailer (-1 = standard).
   size_t nres = save ? p.results.size() : chars.size();
   for (size_t c = 0; c < nres; c++) {
     std::string k = "char" + std::to_string(c);
@@ -235,16 +266,20 @@ void Game::PlayerIo(davi::IniFile& f, const std::string& s, Player& p, bool save
       std::string v = std::to_string(r.tracktodrive) + "," + std::to_string(r.money) + "," +
                       std::to_string(r.won) + "," + std::to_string(r.damage) + "," + std::to_string(r.turbo);
       for (bool t : r.tuneup) v += t ? ",1" : ",0";
+      v += "," + std::to_string(r.car) + "," + std::to_string(r.trailer);
       f.Set(s, k, v);
     } else if (f.Has(s, k)) {
       auto v = Split(f.Get(s, k), ',');
       v.resize(9, "0");
+      v.resize(11, "-1");
       r.tracktodrive = ToInt(v[0]);
       r.money = ToInt(v[1]);
       r.won = ToInt(v[2]) != 0;
       r.damage = ToInt(v[3]);
       r.turbo = ToInt(v[4]);
       for (int t = 0; t < 4; t++) r.tuneup[t] = ToInt(v[5 + t]) != 0;
+      r.car = ToInt(v[9], -1);
+      r.trailer = ToInt(v[10], -1);
     }
   }
 }
@@ -279,6 +314,60 @@ int Game::CharByIndexInGame(int car) const {
   for (auto& c : chars)
     if (c.indexingame == car) return c.index;
   return -1;
+}
+
+const Car* Game::CarInfo(int car) const {
+  return car >= 0 && car < int(cars.size()) && cars[car].index == car ? &cars[car] : nullptr;
+}
+
+bool Game::BonusUnlocked() {
+  Player* p = Cur();
+  if (!p) return false;
+  if (p->unlock_all) return true;
+  for (auto& c : chars)
+    if (!p->Res(c.index).won) return false;
+  return true;
+}
+
+bool Game::CarAvailable(int car) {
+  const Car* c = CarInfo(car);
+  return c && (!c->bonus || BonusUnlocked());
+}
+
+int Game::NextCar(int car, int dir) {
+  int n = int(cars.size());
+  for (int k = 1; k <= n; k++) {
+    int c = ((car + dir * k) % n + n) % n;
+    if (CarAvailable(c)) return c;
+  }
+  return car;
+}
+
+int Game::TrailerIndex(const std::string& ref) const {
+  for (size_t i = 0; i < trailers.size(); i++)
+    if (davi::Lower(trailers[i].ref) == davi::Lower(ref)) return int(i);
+  return 0;
+}
+
+SDL_Surface* Game::CarPicture(int car, int w, int h) {
+  const Car* c = CarInfo(car);
+  if (!c) return nullptr;
+  std::string key = c->carbitmap + "@" + std::to_string(w) + "x" + std::to_string(h);
+  auto it = scaled_.find(key);
+  if (it != scaled_.end()) return it->second;
+  SDL_Surface* src = assets.Bitmap(c->carbitmap);
+  SDL_Surface* out = nullptr;
+  if (src) {
+    out = SDL_CreateSurface(w, h, src->format);
+    if (out) SDL_BlitSurfaceScaled(src, nullptr, out, nullptr, SDL_SCALEMODE_LINEAR);
+  }
+  scaled_[key] = out;
+  return out;
+}
+
+SDL_Surface* Game::TrailerPicture(int trailer) {
+  if (trailer < 0 || trailer >= int(trailers.size()) || trailers[trailer].bitmap.empty()) return nullptr;
+  return assets.Bitmap(trailers[trailer].bitmap);
 }
 
 void Game::SavePlayers() {

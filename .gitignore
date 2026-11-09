@@ -16,3 +16,6 @@ re/out_*.txt
 __pycache__/
 Vakantie Racer.app/
 app.log
+# Mod-assets afgeleid van je eigen CD's (tools/make_mod_assets.py)
+mods/race/local/
+mods/menu/local/

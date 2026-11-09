@@ -35,8 +35,13 @@ void WriteRaceKeys(Game& g, int char_index, int track_index) {
   // The original also wrote [SOUND] volumes through a conversion that is
   // not decoded yet (g_0046A1F0), so the race keeps its own volumes.
   L.SetIn("raser.ini", "PROGRAM", "RESOLUTION", std::to_string(p.resolution));
-  bool bonus = char_index < 0 || char_index >= int(g.chars.size());
-  int car = bonus ? kBonusCar : g.chars[char_index].indexingame;
+  int car = SlotCar(g, char_index);
+  // Port: the car he drives (VEHICLE: the race swaps it into his slot, so
+  // portrait, opponents and results stay his) and his trailer.
+  int choice_car = g.mode == 1 ? p.qr_car : p.Res(char_index).car;
+  int choice_trailer = g.mode == 1 ? p.qr_trailer : p.Res(char_index).trailer;
+  L.SetInt("PLAYER", "VEHICLE", ChosenVehicle(g, char_index, choice_car));
+  L.Set("PLAYER", "TRAILER", g.trailers[ChosenTrailer(g, char_index, choice_trailer)].ref);
   if (g.mode == 1) {
     L.SetInt("PLAYER", "MONEY", 0);
     L.SetInt("PLAYER", "CAR", car);
@@ -90,6 +95,27 @@ void BestLaps(Game& g, int track) {
 }
 
 }  // namespace
+
+int SlotCar(Game& g, int char_index) {
+  bool bonus = char_index < 0 || char_index >= int(g.chars.size());
+  return bonus ? kBonusCar : g.chars[char_index].indexingame;
+}
+
+int ChosenVehicle(Game& g, int char_index, int car) {
+  return car >= 0 && g.CarAvailable(car) ? car : SlotCar(g, char_index);
+}
+
+int ChosenTrailer(Game& g, int char_index, int trailer) {
+  if (trailer >= 0 && trailer < int(g.trailers.size())) return trailer;
+  const Car* c = g.CarInfo(SlotCar(g, char_index));
+  return c && !c->trailer.empty() ? g.TrailerIndex(c->trailer) : 0;
+}
+
+void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer) {
+  int t = ChosenTrailer(g, char_index, trailer);
+  form.SetCaption("lblTrailer", g.trailers[t].name);
+  form.SetPicture("imgTrailer", g.TrailerPicture(t));
+}
 
 void StartRace(Game& g, int char_index, int track_index, std::function<void()> after) {
   auto go = [&g, char_index, track_index, after]() {
