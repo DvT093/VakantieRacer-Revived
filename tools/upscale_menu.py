@@ -10,7 +10,7 @@ mods/menu/local/hd/ (in .gitignore, like the rest of mods/menu/local):
                     no magenta fringes), the picture and the alpha mask are
                     upscaled separately and put together
 
-Names are what the menu looks for (src/menu/engine/hd.h): a bitmap file
+Names are what the menu looks for (../Davilex-RED/menu/engine/hd.h): a bitmap file
 without extension ("mainscre"), a picture inside a form
 ("TfrmMainScreen.imgLogo"), a button state ("defBtn.UpLink"). Sources:
   iso/data/MenuData/*.bmp, mods/menu/*.bmp, mods/menu/local/*.bmp
