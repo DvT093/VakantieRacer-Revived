@@ -17,7 +17,8 @@ Voorbewerking, per texture:
 - doorzichtige texels krijgen de kleur van hun buren (anders roze randen);
 - 16 px rand: de overkant (wrap) voor bladen zonder key, anders de rand
   herhaald; tools/texture_pack.ini kan dat per texture omdraaien;
-- 4x met Real-ESRGAN, rand eraf, alpha apart (Lanczos 4x, drempel 0,5).
+- 4x met Real-ESRGAN, rand eraf; de alpha apart, als zwart-wit plaatje ook
+  door Real-ESRGAN (natuurlijker bladranden dan Lanczos), drempel 0,5.
 Uitzonderingen (tools/texture_pack.ini): hele textures overslaan, of
 stukken (kleine tekst, gezichten) origineel houden (zacht vergroot, zoals
 de bilineaire filter van het spel ze toont).
@@ -45,7 +46,7 @@ import zipfile
 from PIL import Image, ImageChops, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VERSION = "1"  # verhogen als de verwerking verandert: alles opnieuw
+VERSION = "2"  # verhogen als de verwerking verandert: alles opnieuw
 
 ESRGAN_ZIP = ("https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
               "realesrgan-ncnn-vulkan-20220424-macos.zip",
@@ -339,6 +340,8 @@ def main():
                 filled = fill_transparent(im, mask) if mask else im
                 wrap = (mask is None or low in rules["wrap"]) and low not in rules["clamp"]
                 pad(filled, wrap).save(os.path.join(src, h + ".png"))
+                if mask:
+                    pad(mask.convert("RGB"), wrap).save(os.path.join(src, h + "_a.png"))
                 prep[h] = (low, filled, mask, sig)
             upscale(tool_dir, src, dst)
             for h, (low, im, mask, sig) in prep.items():  # im: met gevulde key
@@ -349,7 +352,9 @@ def main():
                     part = im.crop((x, y, x + rw, y + rh)).resize((rw * SCALE, rh * SCALE), Image.Resampling.BICUBIC)
                     big.paste(part, (x * SCALE, y * SCALE))
                 if mask:
-                    alpha = mask.resize(big.size, Image.Resampling.LANCZOS).point(lambda v: 255 if v >= 128 else 0)
+                    alpha = Image.open(os.path.join(dst, h + "_a.png")).convert("L")
+                    alpha = alpha.crop((PAD * SCALE, PAD * SCALE, (PAD + w) * SCALE, (PAD + ht) * SCALE))
+                    alpha = alpha.point(lambda v: 255 if v >= 128 else 0)
                     big = big.convert("RGBA")
                     big.putalpha(alpha)
                 big.save(os.path.join(a.out, h + ".png"), optimize=False, compress_level=6)
