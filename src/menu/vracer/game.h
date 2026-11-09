@@ -77,8 +77,9 @@ struct CharResult {
   bool won = false;      // won the final with this character
   int damage = 0, turbo = 0;
   bool tuneup[4] = {};   // Motor, Banden, ABS, Versnellingsbak (one race)
-  // Port: the car he drives (-1 = his own) and the trailer (-1 = the
-  // standard one of his car, else an index into Game::trailers).
+  // Port: the trailer (-1 = the standard one of his car, else an index
+  // into Game::trailers). `car` is no longer used (a car belongs to its
+  // character); kept so older menu_players.ini files read the same.
   int car = -1, trailer = -1;
 };
 
@@ -95,7 +96,8 @@ struct Player {
   int joy_sensitivity = 50, wheel_sensitivity = 50;
   int gamma = 0;
   bool alpha = true, bilinear = true, waitvbl = false;
-  // Quick Race selection; car/trailer as in CharResult.
+  // Quick Race selection; qr_car = the bonus car of the bonus entry (the
+  // presenter), qr_trailer as CharResult::trailer.
   int qr_char = 0, qr_track = 0;
   int qr_car = -1, qr_trailer = -1;
   // Port: "Alles vrij" (Opties): the bonus cars and every Vakantie Race
@@ -174,8 +176,6 @@ class Game {
   // Every character won the Vakantie Race (Menu.exe 0x46c808), or Alles vrij.
   bool BonusUnlocked();
   bool CarAvailable(int car);
-  // The next/previous available car after `car` (wraps).
-  int NextCar(int car, int dir);
   // Index into trailers of a RefName (0 = none if unknown).
   int TrailerIndex(const std::string& ref) const;
   // The car's picture alone, scaled to w x h (cached; nullptr if missing).

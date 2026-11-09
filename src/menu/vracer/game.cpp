@@ -334,15 +334,6 @@ bool Game::CarAvailable(int car) {
   return c && (!c->bonus || BonusUnlocked());
 }
 
-int Game::NextCar(int car, int dir) {
-  int n = int(cars.size());
-  for (int k = 1; k <= n; k++) {
-    int c = ((car + dir * k) % n + n) % n;
-    if (CarAvailable(c)) return c;
-  }
-  return car;
-}
-
 int Game::TrailerIndex(const std::string& ref) const {
   for (size_t i = 0; i < trailers.size(); i++)
     if (davi::Lower(trailers[i].ref) == davi::Lower(ref)) return int(i);

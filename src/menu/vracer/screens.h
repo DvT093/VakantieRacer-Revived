@@ -46,9 +46,14 @@ class QuickRaceScreen : public VrScreen {  // TfrmQuickRace
  private:
   void SetChar(int i);
   void SetTrack(int i);
-  // Port: the autoselector row (btnPrevCar/btnNextCar) and the trailer
-  // button (btnTrailer); -1 = his own car / the standard trailer.
-  void SetCar(int car);
+  // Port: the entries are the characters, then the bonus cars (the
+  // presenter in the Ferrari as in the original, the Z3 and DeLorean when
+  // open); the Auto row (btnPrevCar/btnNextCar) walks the same list.
+  // car_ = the bonus car of the bonus entry. btnTrailer: the trailer
+  // (-1 = the car's own).
+  std::vector<int> Entries();  // car numbers, characters first
+  void SetEntry(int k);
+  void Step(int dir);
   void SetTrailer(int trailer);
   int char_ = 0, track_ = 0, car_ = -1, trailer_ = -1;
 };
@@ -93,7 +98,6 @@ class CharacterScreen : public VrScreen {  // TfrmCharacter (CHARACTE.bmp)
 
  private:
   void SetChar(int i);
-  void SetCar(int car);  // port: autoselector row, -1 = his own car
   int char_ = 0;
 };
 
@@ -285,9 +289,10 @@ void AskForNewPlayer(Game& g, std::function<void()> done);
 void StartRace(Game& g, int char_index, int track_index, std::function<void()> after);
 // The car slot of a character (his own car; the bonus entry: the Ferrari).
 int SlotCar(Game& g, int char_index);
-// The car he drives and the trailer RefName for the race, from a choice
-// (-1 = his own car / the standard trailer of his car slot).
-int ChosenVehicle(Game& g, int char_index, int car);
+// The car of a Quick Race entry: a character's own car, or for the bonus
+// entry (the presenter) the chosen bonus car (5 Ferrari, 6 Z3, 7 DeLorean).
+int BonusEntryCar(Game& g, int char_index, int car);
+// The trailer for the race (-1 = the standard trailer of his car slot).
 int ChosenTrailer(Game& g, int char_index, int trailer);  // index into Game::trailers
 // Trailer button text: "<name>" of the chosen trailer.
 void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer);

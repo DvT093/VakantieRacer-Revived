@@ -27,9 +27,9 @@ void CharacterScreen::SetChar(int i) {
   form.SetCaption("lblTitle", c.name);
   form.SetCaption("lblTextBlock", c.story);
   form.SetPicture("imgCharacter", game.assets.Bitmap(c.bitmap));
+  form.SetPicture("imgCar", game.assets.Bitmap(c.carbitmap));
   Player* p = game.Cur();
   CharResult r = p ? p->Res(i) : CharResult{};
-  SetCar(r.car);
   for (int s = 0; s < 6; s++) form.SetVisible("imgSun" + std::to_string(s), s < r.tracktodrive || r.won);
   game.app.CancelTimers(this);
   std::string wav = c.introwav;
@@ -37,42 +37,29 @@ void CharacterScreen::SetChar(int i) {
   game.app.After(1000, [&g, wav]() { g.Voice(wav); }, this);
 }
 
-// Port: the car he drives (CharResult::car, -1 = his own): picture and bars.
-void CharacterScreen::SetCar(int car) {
-  int slot = SlotCar(game, char_);
-  if (car == slot || !game.CarAvailable(car)) car = -1;
-  if (Player* p = game.Cur()) p->Res(char_).car = car;
-  const Car* info = car >= 0 ? game.CarInfo(car) : nullptr;
-  form.SetPicture("imgCar", game.assets.Bitmap(info ? info->carbitmap : game.chars[char_].carbitmap));
-}
-
 void CharacterScreen::Paint(SDL_Surface* canvas, int ox, int oy) {
   davi::Widget* bars = form.Get("imgBars");
   if (!bars) return;
   const Character& c = game.chars[char_];
-  Player* p = game.Cur();
-  int car = p ? p->Res(char_).car : -1;
-  const Car* info = car >= 0 ? game.CarInfo(car) : nullptr;
   int x = ox + bars->r.x + 10, y = oy + bars->r.y;
-  DrawDots(game, canvas, x, y + 10, info ? info->speed : c.speed, 0);
-  DrawDots(game, canvas, x, y + 38, info ? info->accell : c.accell, 0);
-  DrawDots(game, canvas, x, y + 66, info ? info->handling : c.handling, 0);
-  DrawDots(game, canvas, x, y + 94, info ? info->brakes : c.brakes, 0);
+  DrawDots(game, canvas, x, y + 10, c.speed, 0);
+  DrawDots(game, canvas, x, y + 38, c.accell, 0);
+  DrawDots(game, canvas, x, y + 66, c.handling, 0);
+  DrawDots(game, canvas, x, y + 94, c.brakes, 0);
 }
 
 void CharacterScreen::OnClick(davi::Widget& w) {
   int n = int(game.chars.size());
-  // Port: another character or car takes its own trailer again (the
-  // Garage's Caravan button chooses another until the next change).
+  // Port: another character takes its own trailer again (the Garage's
+  // Caravan button chooses another until the next change).
   auto own_trailer = [&]() {
     if (Player* p = game.Cur()) p->Res(char_).trailer = -1;
   };
-  if (w.name == "btnNextChar") SetChar((char_ + 1) % n), own_trailer();
-  else if (w.name == "btnPrevChar") SetChar((char_ + n - 1) % n), own_trailer();
-  else if (davi::Lower(w.name) == "btnnextcar" || davi::Lower(w.name) == "btnprevcar") {
-    Player* p = game.Cur();
-    int car = p ? p->Res(char_).car : -1;
-    SetCar(game.NextCar(car < 0 ? SlotCar(game, char_) : car, davi::Lower(w.name) == "btnnextcar" ? 1 : -1));
+  if (w.name == "btnNextChar") {
+    SetChar((char_ + 1) % n);
+    own_trailer();
+  } else if (w.name == "btnPrevChar") {
+    SetChar((char_ + n - 1) % n);
     own_trailer();
   } else if (w.name == "btnMain") game.Goto(game.Screen<MainScreen>());
   else if (w.name == "btnBack") game.Back();
