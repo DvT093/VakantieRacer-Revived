@@ -49,7 +49,7 @@
 
 ## 💿 Over deze repo
 
-In deze repo zitten **geen spelbestanden**. `setup.sh` maakt alles uit de ISO (zie boven).
+In deze repo zitten **geen spelbestanden**. `setup.sh` maakt alles uit de ISO (zie boven). Het HD-pack (588 MB) staat bij de [release hd-v1](https://github.com/DvT093/VakantieRacer-Revived/releases/tag/hd-v1); `setup.sh` downloadt het vanzelf.
 
 ## 🧰 Wat je nodig hebt
 - Een Mac met Apple Silicon (M1 of nieuwer)
@@ -108,7 +108,7 @@ Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on 
 > [!IMPORTANT]
 > **You need the Vakantie Racer ISO.** The game itself is not in this repo, only the port. Download `VRACER.iso` via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) ([directly on Archive.org](https://archive.org/details/vakantieracerholidayracer)) and give it to `setup.sh`.
 
-This repo contains **no game files**. `setup.sh` builds everything from the ISO (see above).
+This repo contains **no game files**. `setup.sh` builds everything from the ISO (see above). The HD pack (588 MB) is attached to [release hd-v1](https://github.com/DvT093/VakantieRacer-Revived/releases/tag/hd-v1); `setup.sh` downloads it for you.
 
 ## 🧰 What you need
 - A Mac with Apple Silicon (M1 or newer)
