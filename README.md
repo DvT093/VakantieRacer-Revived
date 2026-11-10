@@ -25,15 +25,19 @@
 
 ## 📸 Screenshots
 
-**In de race, in HD:**
+**In de race, in HD:** Sjonnie en Anita met de tokkie-caravan op de Côte d'Azur.
 
-![De tokkie-caravan op de Côte d'Azur, in HD](docs/screenshots/race-caravan-hd.jpg)
+![Sjonnie en Anita met de tokkie-caravan, in HD](docs/screenshots/race-caravan-hd.jpg)
+
+**Achteruit kijken (toets 3):**
+
+![De Ami van voren, met de caravan erachter](docs/screenshots/race-achteruit-kijken.jpg)
 
 **Origineel vs. HD**, met F9 wissel je live:
 
 ![Links origineel, rechts HD](docs/screenshots/caravan-origineel-vs-hd.jpg)
 
-![Links HD, rechts origineel (F9)](docs/screenshots/f9-hd-vs-origineel.jpg)
+![Links origineel, rechts HD (F9)](docs/screenshots/f9-origineel-vs-hd.jpg)
 
 **Quick Race met de caravankeuze:**
 
@@ -85,6 +89,9 @@ setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en 
 - **Opties > Gevorderd**: resolutie, anti-aliasing, filtering en het menu in 4K.
 - Zelf modden: zie `mods/` en `CLAUDE.md`.
 
+## ⚠️ Bekende problemen
+- **BMW Z3 en DeLorean zien er kaal uit.** Het zijn verborgen auto's die de makers nooit goed van textures hebben voorzien: op de Vakantie Racer-CD staat voor geen van beide een eigen lak. De port geeft ze voorlopig een noodlak.
+
 ## Credits en licentie
 - Gebouwd op [SwARc](https://github.com/JTM-rootstorm/x86recomp) van JT (MIT), een static recompiler voor x86-games.
 - De code in deze repo is MIT (zie `LICENSE`).
@@ -124,6 +131,9 @@ Arrows steer and drive, **Cmd** = turbo, **Alt** = handbrake, **Space** = horn, 
 
 ## Options
 **Alles vrij** (unlock all) and **Caravan kiezen** (choose your trailer, off by default) in Options; resolution, anti-aliasing and the 4K menu under Options > Gevorderd.
+
+## ⚠️ Known issues
+- **The BMW Z3 and DeLorean look bare.** They are hidden cars the developers never properly textured: the Vakantie Racer CD has no paint for either. The port gives them a stand-in paint for now.
 
 ## Credits and license
 Built on [SwARc](https://github.com/JTM-rootstorm/x86recomp) by JT (MIT). The code in this repo is MIT (see `LICENSE`). Vakantie Racer belongs to Davilex and its rights holder; this repo contains no game files, and the HD pack is derived from the original textures and meant only for people who own the game. This project is not affiliated with Davilex.
