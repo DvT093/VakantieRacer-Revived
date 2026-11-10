@@ -142,12 +142,14 @@ ok "Alles aanwezig"
 
 # ---------------------------------------------------------------------------
 step "📦" 3 "SwARc en Davilex-RED (submodules)" "1 min"
-if [ -f external/SwARc/CMakeLists.txt ] && [ -f external/Davilex-RED/menu/davi_menu.cmake ]; then
-  skip "external/ is er al"
-elif [ -d .git ] || [ -f .git ]; then
-  git submodule update --init --recursive || fail "Submodules ophalen mislukt." \
+# Altijd bijwerken: na een git pull wijzen de submodules naar nieuwe commits,
+# en zonder deze stap zou de build de oude SwARc en Davilex-RED gebruiken.
+if [ -d .git ] || [ -f .git ]; then
+  git submodule update --init --recursive || fail "Submodules ophalen of bijwerken mislukt." \
     "Check je internet en probeer: git submodule update --init --recursive"
-  ok "external/SwARc en external/Davilex-RED opgehaald"
+  ok "external/SwARc en external/Davilex-RED zijn bij"
+elif [ -f external/SwARc/CMakeLists.txt ] && [ -f external/Davilex-RED/menu/davi_menu.cmake ]; then
+  skip "external/ is er al (geen git-map, dus niet bijgewerkt)"
 else
   fail "Dit is geen git-map, dus de submodules ontbreken." \
     "Haal het project op met: git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git"
