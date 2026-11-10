@@ -17,7 +17,8 @@ HD_SHA256="4d826e85a3b5cdeb5342d22b6c9b0fab6967aee8c6746425972fc245ea974ddd"
 # Alleen deze CD-versie werkt (Vakantie Racer v1.00, 30-03-2000).
 SPEL_SHA256="6c4a3a196fa8ee3d2a2bf7b437adbc9da5be3be0708eec15d0fce2d4eb99c939"
 # Wat de build nodig heeft (Homebrew-namen).
-BREW_DEPS="cmake ninja pkgconf sdl3 ffmpeg freetype glslang spirv-cross llvm@22 python@3.14 pillow"
+BREW_DEPS="cmake ninja pkgconf sdl3 ffmpeg freetype glslang spirv-cross llvm@22 python@3.14"
+# Plus Pillow voor python3 (brew install pillow), gecheckt met een import.
 
 # Overschrijven kan (testen, eigen mirror): VRACER_HD_URL (ook file://...),
 # VRACER_HD_SHA256, VRACER_JOBS (parallelle compileertaken, standaard 2).
@@ -134,7 +135,7 @@ if [ -n "$MISSING" ]; then
 fi
 PY="$(brew --prefix)/bin/python3"
 [ -x "$PY" ] || PY="$(command -v python3)"
-"$PY" -c "import PIL" 2>/dev/null || fail "Python vindt Pillow niet." "Plak dit in Terminal: brew reinstall pillow"
+"$PY" -c "import PIL" 2>/dev/null || fail "Er mist gereedschap: Pillow (plaatjes in Python)." "Plak dit in Terminal: brew install pillow" "Daarna opnieuw: ./setup.sh"
 # make_app.sh en de tools roepen 'python3' aan: die van Homebrew vooraan.
 export PATH="$(brew --prefix)/bin:$PATH"
 ok "Alles aanwezig"
