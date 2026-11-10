@@ -232,7 +232,7 @@ MIN=$(( ($(date +%s) - START + 59) / 60 ))
 echo
 e "🎉" "${G}${B}Klaar in $MIN min! Dubbelklik op \"Vakantie Racer.app\" (of: open \"Vakantie Racer.app\").${N}"
 e "  🎮" "In de race: pijltjes sturen, Cmd = turbo, F9 = origineel/HD, Esc = pauze."
-e "  🚐" "Caravan kiezen en Alles vrij zet je aan in Opties."
+e "  🏕️" "Caravan kiezen en Alles vrij zet je aan in Opties."
 if [ -n "$SRC" ] && [ -f "$SRC" ]; then
   e "  💾" "$(basename "$SRC") heb je niet meer nodig, bewaar hem als back-up of gooi hem weg."
 else
