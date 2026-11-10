@@ -1,0 +1,8 @@
+[submodule "external/SwARc"]
+	path = external/SwARc
+	url = https://github.com/DvT093/SwARc.git
+	branch = legacy-dx5
+[submodule "external/Davilex-RED"]
+	path = external/Davilex-RED
+	url = https://github.com/DvT093/Davilex-RED.git
+	branch = main

@@ -1,11 +1,11 @@
 # vracer-menu: native replacement for the Delphi menu (MenuData/Menu.exe).
-#   engine    shared with Europe Racer and A2 Racer IV: ../Davilex-RED/menu/engine
+#   engine    shared with Europe Racer and A2 Racer IV: Davilex-RED/menu/engine
 #             (DFM loader, graphic buttons, captions ini, assets/mod overrides,
 #             4K painter, SDL3 window and audio)
 #   launcher  RED-engine race handshake (game.ini + running the race), also
-#             shared: ../Davilex-RED/menu/launcher
+#             shared: Davilex-RED/menu/launcher
 #   vracer/   Vakantie Racer screens and flow
-set(DAVILEX_RED_DIR ${CMAKE_SOURCE_DIR}/../Davilex-RED CACHE PATH "Shared Davilex RED code")
+# DAVILEX_RED_DIR: set in the top-level CMakeLists.txt (external/ or ../).
 include(${DAVILEX_RED_DIR}/menu/davi_menu.cmake)
 
 file(GLOB VRACER_MENU_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vracer/*.cpp)
