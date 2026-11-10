@@ -41,6 +41,7 @@ void WriteRaceKeys(Game& g, int char_index, int track_index) {
   // car. VEHICLE = CAR: no swap (race_mods still supports one).
   int car = g.mode == 1 ? BonusEntryCar(g, char_index, p.qr_car) : SlotCar(g, char_index);
   int choice_trailer = g.mode == 1 ? p.qr_trailer : p.Res(char_index).trailer;
+  if (!p.trailer_choice) choice_trailer = -1;  // Caravan kiezen off: the car's own trailer
   L.SetInt("PLAYER", "VEHICLE", car);
   L.Set("PLAYER", "TRAILER", g.trailers[ChosenTrailer(g, char_index, choice_trailer)].ref);
   if (g.mode == 1) {
@@ -116,9 +117,13 @@ int ChosenTrailer(Game& g, int char_index, int trailer) {
 
 void ShowTrailerChoice(Game& g, davi::Form& form, int char_index, int trailer, bool enabled) {
   int t = ChosenTrailer(g, char_index, trailer);
+  // Options "Caravan kiezen" off: no thumbnails, the car's own trailer.
+  Player* p = g.Cur();
+  bool shown = p && p->trailer_choice;
   for (int i = 0; i < int(g.trailers.size()); i++) {
     davi::Widget* w = form.Get("thmTrailer" + std::to_string(i));
     if (!w) continue;
+    form.SetVisible(w->name, shown);
     w->picture = g.TrailerPicture(i);
     w->pic_transparent = true;
     std::string name = g.trailers[i].name;

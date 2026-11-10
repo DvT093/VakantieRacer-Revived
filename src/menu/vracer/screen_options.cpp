@@ -97,6 +97,7 @@ void OptionsScreen::OnShow() {
   Video();
   form.W("chkStartInfoOn").checked = temp_.show_start_info;
   form.W("chkUnlockAll").checked = temp_.unlock_all;  // port: Alles vrij
+  form.W("chkTrailerChoice").checked = temp_.trailer_choice;  // port: Caravan kiezen
   form.W("sldrMusic").pos = temp_.music_volume;
   form.W("sldrSound").pos = temp_.fx_volume;
   form.W("sldrVoice").pos = temp_.voices_volume;
@@ -145,6 +146,8 @@ void OptionsScreen::OnClick(davi::Widget& w) {
   else if (n == "optWheel" || n == "lblWheel") Control(4);
   else if (n == "lblStartInfoOn") form.W("chkStartInfoOn").checked = !form.W("chkStartInfoOn").checked;
   else if (davi::Lower(n) == "lblunlockall") form.W("chkUnlockAll").checked = !form.W("chkUnlockAll").checked;
+  else if (davi::Lower(n) == "lbltrailerchoice")
+    form.W("chkTrailerChoice").checked = !form.W("chkTrailerChoice").checked;
   else if (n == "chkVideo3d" || n == "lblVideo3d") {
     if (n == "lblVideo3d") form.W("chkVideo3d").checked = !form.W("chkVideo3d").checked;
     Video();
@@ -192,6 +195,7 @@ void OptionsScreen::OnClick(davi::Widget& w) {
     else if (form.W("optVideoHigh").checked) temp_.resolution = 4;
     temp_.show_start_info = form.W("chkStartInfoOn").checked;
     temp_.unlock_all = form.W("chkUnlockAll").checked;
+    temp_.trailer_choice = form.W("chkTrailerChoice").checked;
     temp_.music_volume = form.W("sldrMusic").pos;
     temp_.fx_volume = form.W("sldrSound").pos;
     temp_.voices_volume = form.W("sldrVoice").pos;

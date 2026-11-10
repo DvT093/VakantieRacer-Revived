@@ -103,6 +103,10 @@ struct Player {
   // Port: "Alles vrij" (Opties): the bonus cars and every Vakantie Race
   // track open, without changing the progress itself.
   bool unlock_all = false;
+  // Port: "Caravan kiezen" (Opties): the caravan thumbnails on Quick Race
+  // and in the Garage. Off (the default) = every car pulls its own trailer,
+  // as in the original.
+  bool trailer_choice = false;
   // Vakantie Race
   int current_char = 4, current_track = 0;
   std::vector<CharResult> results;  // one per character

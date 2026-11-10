@@ -254,6 +254,7 @@ void Game::PlayerIo(davi::IniFile& f, const std::string& s, Player& p, bool save
   num("qrcar", p.qr_car);
   num("qrtrailer", p.qr_trailer);
   flag("unlockall", p.unlock_all);
+  flag("trailerchoice", p.trailer_choice);
   num("currentchar", p.current_char);
   num("currenttrack", p.current_track);
   // Per character: tracktodrive,money,won,damage,turbo,motor,banden,abs,
