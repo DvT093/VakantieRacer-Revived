@@ -1,17 +1,51 @@
-# Vakantie Racer Revived: port to macOS (Apple Silicon)
+# 🏖️ Vakantie Racer Revived 🚐💨
+
+**Davilex' Vakantie Racer (2000), herboren als echte Mac-app voor Apple Silicon. In HD, met een menu in 4K en een caravan achter elke auto.**
+
+![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple) ![60 fps](https://img.shields.io/badge/60-fps-brightgreen) ![HD](https://img.shields.io/badge/textures-4x%20HD-orange) ![Menu 4K](https://img.shields.io/badge/menu-4K-yellow) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+
+![De tokkie-caravan op de Côte d'Azur, in HD](docs/screenshots/race-caravan-hd.jpg)
 
 *English below.*
 
-Vakantie Racer (Davilex, 2000) native op een Mac met Apple Silicon. Geen Wine, geen emulator: de spelcode van je eigen CD wordt omgezet naar een echte Mac-app, met HD-textures, een menu in 4K, 60 fps en een paar mods (bonusauto's, Sjaak met de caravan, alles vrij).
+## ✨ Wat is er nieuw
 
-In deze repo zitten **geen spelbestanden**. Je hebt je eigen CD of ISO van Vakantie Racer nodig (v1.00 van 30-03-2000).
+| | |
+|---|---|
+| 🍎 **Native op de Mac** | Geen Wine, geen emulator. De spelcode van je eigen CD wordt omgezet naar een echte Apple Silicon-app |
+| 🎨 **HD-textures** | Elke texture 4x opgeschaald met AI (Real-ESRGAN). Druk **F9** om live te wisselen met het origineel |
+| 🖥️ **Menu in 4K** | Scherp op elk Retina-scherm; de tekst in de plaatjes is opnieuw gezet in het echte lettertype |
+| 🚐 **Caravan kiezen** | Hang de tokkie-caravan, de hippie-caravan of de jetski achter elke auto (vinkje in Opties) |
+| 🏎️ **Alle auto's vrij** | Ook de Ferrari, BMW Z3 en DeLorean |
+| ⏸️ **Pauzemenu** | Esc pauzeert de race in plaats van hem af te breken |
+| 🎮 **60 fps** | Strak, ook op 4K met anti-aliasing |
 
-## Wat je nodig hebt
+## 📸 Screenshots
+
+**Origineel vs. HD**, met F9 wissel je live:
+
+![Links origineel, rechts HD](docs/screenshots/caravan-origineel-vs-hd.jpg)
+
+![Links HD, rechts origineel (F9)](docs/screenshots/f9-hd-vs-origineel.jpg)
+
+**Quick Race met de caravankeuze:**
+
+![Quick Race met caravankeuze](docs/screenshots/quickrace-caravan.jpg)
+
+**Het menu in 4K:**
+
+![Kies je karakter, menu in 4K](docs/screenshots/menu-4k.jpg)
+
+## 💿 Over deze repo
+
+In deze repo zitten **geen spelbestanden**. Je hebt je eigen CD of ISO van Vakantie Racer nodig (v1.00 van 30-03-2000). `setup.sh` doet de rest.
+
+## 🧰 Wat je nodig hebt
 - Een Mac met Apple Silicon (M1 of nieuwer)
 - De ISO van de CD (of een map met de inhoud van de CD)
 - [Homebrew](https://brew.sh); setup.sh zegt precies wat je nog moet installeren
 
-## Installeren
+## 🚀 Installeren
 
 ```sh
 git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
@@ -51,18 +85,20 @@ setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en 
 
 ---
 
-# Vakantie Racer for the Mac
+# 🏖️ Vakantie Racer Revived (English)
+
+Davilex' Vakantie Racer (2000) reborn as a native Apple Silicon Mac app: AI-upscaled HD textures (F9 toggles the original live), a 4K menu, a caravan behind any car, all cars unlocked, a pause menu and a locked 60 fps. Screenshots above.
 
 Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on Apple Silicon Macs. No Wine, no emulator: the game code from your own CD is recompiled into a real Mac app, with HD textures, a 4K menu, 60 fps and a few mods (bonus cars, trailers, unlock all).
 
 This repo contains **no game files**. You need your own CD or ISO of Vakantie Racer (v1.00, 30 March 2000).
 
-## What you need
+## 🧰 What you need
 - A Mac with Apple Silicon (M1 or newer)
 - The ISO of the CD (or a folder with the CD's contents)
 - [Homebrew](https://brew.sh); setup.sh tells you exactly what to install
 
-## Install
+## 🚀 Install
 
 ```sh
 git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
