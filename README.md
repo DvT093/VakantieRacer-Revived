@@ -1,4 +1,4 @@
-# Vakantie Racer voor de Mac
+# Vakantie Racer Revived: port to macOS (Apple Silicon)
 
 *English below.*
 
@@ -14,8 +14,8 @@ In deze repo zitten **geen spelbestanden**. Je hebt je eigen CD of ISO van Vakan
 ## Installeren
 
 ```sh
-git clone --recursive https://github.com/DvT093/vakantieracer.git
-cd vakantieracer && ./setup.sh ~/Downloads/VRACER.iso
+git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
+cd VakantieRacer-Revived && ./setup.sh ~/Downloads/VRACER.iso
 ```
 
 Of zeg in [Claude Code](https://claude.com/claude-code) in deze map: "hier is de ISO, zet het op".
@@ -65,8 +65,8 @@ This repo contains **no game files**. You need your own CD or ISO of Vakantie Ra
 ## Install
 
 ```sh
-git clone --recursive https://github.com/DvT093/vakantieracer.git
-cd vakantieracer && ./setup.sh ~/Downloads/VRACER.iso
+git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
+cd VakantieRacer-Revived && ./setup.sh ~/Downloads/VRACER.iso
 ```
 
 Or tell [Claude Code](https://claude.com/claude-code) in this folder: "here is the ISO, set it up".

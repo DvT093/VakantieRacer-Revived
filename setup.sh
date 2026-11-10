@@ -1,5 +1,5 @@
 #!/bin/bash
-# Vakantie Racer voor de Mac: van je eigen CD (ISO) naar "Vakantie Racer.app".
+# Vakantie Racer Revived (macOS, Apple Silicon): van je eigen CD (ISO) naar "Vakantie Racer.app".
 #
 #   ./setup.sh VRACER.iso        de ISO van je eigen CD
 #   ./setup.sh /pad/naar/cd      of een map met de inhoud van de CD
@@ -12,7 +12,7 @@ set -euo pipefail
 
 # HD-pack (HD-textures, menu in 4K, mod-plaatjes): zip bij de GitHub-release.
 HD_VERSION="hd-v1"
-HD_URL="https://github.com/DvT093/vakantieracer/releases/download/hd-v1/vakantieracer-hd-v1.zip"
+HD_URL="https://github.com/DvT093/VakantieRacer-Revived/releases/download/hd-v1/vakantieracer-hd-v1.zip"
 HD_SHA256="4d826e85a3b5cdeb5342d22b6c9b0fab6967aee8c6746425972fc245ea974ddd"
 # Alleen deze CD-versie werkt (Vakantie Racer v1.00, 30-03-2000).
 SPEL_SHA256="6c4a3a196fa8ee3d2a2bf7b437adbc9da5be3be0708eec15d0fce2d4eb99c939"
@@ -66,7 +66,7 @@ fail() {
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 
 echo
-e "🏖️ 🚗🚐" "${B}Vakantie Racer voor de Mac${N}"
+e "🏖️ 🚗🚐" "${B}Vakantie Racer Revived · macOS (Apple Silicon)${N}"
 e "  " "${D}Van je eigen CD naar een app met HD-textures en een menu in 4K.${N}"
 
 # ---------------------------------------------------------------------------
@@ -150,7 +150,7 @@ elif [ -d .git ] || [ -f .git ]; then
   ok "external/SwARc en external/Davilex-RED opgehaald"
 else
   fail "Dit is geen git-map, dus de submodules ontbreken." \
-    "Haal het project op met: git clone --recursive https://github.com/DvT093/vakantieracer.git"
+    "Haal het project op met: git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git"
 fi
 
 # ---------------------------------------------------------------------------
