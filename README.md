@@ -15,7 +15,7 @@
 
 | | |
 |---|---|
-| 🍎 **Native op de Mac** | Geen Wine, geen emulator. De spelcode van je eigen CD wordt omgezet naar een echte Apple Silicon-app |
+| 🍎 **Native op de Mac** | Geen Wine, geen emulator. De spelcode uit de ISO wordt omgezet naar een echte Apple Silicon-app |
 | 🎨 **HD-textures** | Elke texture 4x opgeschaald met AI (Real-ESRGAN). Druk **F9** om live te wisselen met het origineel |
 | 🖥️ **Menu in 4K** | Scherp op elk Retina-scherm; de tekst in de plaatjes is opnieuw gezet in het echte lettertype |
 | 🏕️ **Caravan kiezen** | Hang de tokkie-caravan, de hippie-caravan of de jetski achter elke auto (vinkje in Opties) |
@@ -92,7 +92,7 @@ setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en 
 
 Davilex' Vakantie Racer (2000) reborn as a native Apple Silicon Mac app: AI-upscaled HD textures (F9 toggles the original live), a 4K menu, a caravan behind any car, all cars unlocked, a pause menu and a locked 60 fps. Screenshots above.
 
-Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on Apple Silicon Macs. No Wine, no emulator: the game code from your own CD is recompiled into a real Mac app, with HD textures, a 4K menu, 60 fps and a few mods (bonus cars, trailers, unlock all).
+Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on Apple Silicon Macs. No Wine, no emulator: the game code from the ISO is recompiled into a real Mac app, with HD textures, a 4K menu, 60 fps and a few mods (bonus cars, trailers, unlock all).
 
 > [!IMPORTANT]
 > **You need the Vakantie Racer ISO.** The game itself is not in this repo, only the port. Download `VRACER.iso` via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) ([directly on Archive.org](https://archive.org/details/vakantieracerholidayracer)) and give it to `setup.sh`.
@@ -101,7 +101,7 @@ This repo contains **no game files**. `setup.sh` builds everything from the ISO 
 
 ## 🧰 What you need
 - A Mac with Apple Silicon (M1 or newer)
-- The ISO of the CD (or a folder with the CD's contents)
+- `VRACER.iso` (see above)
 - [Homebrew](https://brew.sh); setup.sh tells you exactly what to install
 
 ## 🚀 Install
