@@ -1,0 +1,26 @@
+image_base 0x00400000  image_size 0x19e000  entry 0x004c9338  timestamp 0x38e4c10f
+relocations: NONE (fixed base)
+sections:
+  .text    va 0x00401000 vsize   0xde832 raw   0xdf000 chars 0x60000020
+  .rdata   va 0x004e0000 vsize    0xf5bc raw   0x10000 chars 0x40000040
+  .data    va 0x004f0000 vsize   0xad168 raw   0x23000 chars 0xc0000040
+imports per dll:
+  USER32.dll     29
+  DDRAW.dll      3
+  DINPUT.dll     1
+  DSOUND.dll     2
+  KERNEL32.dll   86
+  ADVAPI32.dll   1
+  GDI32.dll      7
+  WINMM.dll      8
+exports: 0 
+rich header (prodid build count):
+   12  7291 9
+   14  7299 36
+   10  8168 170
+    0     0 35
+   11  8168 68
+   10  8447 1
+    1     0 172
+   19  8034 13
+   11  8447 237

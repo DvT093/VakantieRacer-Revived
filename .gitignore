@@ -6,8 +6,6 @@ build/
 .DS_Store
 out/
 generated/
-# Afgeleid van spel.dat (opnieuw te maken met pe_symbols.py + Ghidra-export)
-symbols/
 *.log
 # Speldata van de port (kopie game.ini, saves, crashes)
 userdata/
@@ -19,3 +17,9 @@ app.log
 # Mod-assets afgeleid van je eigen CD's (tools/make_mod_assets.py)
 mods/race/local/
 mods/menu/local/
+# Je eigen CD-image (setup.sh pakt hem uit naar iso/)
+*.iso
+# Persoonlijke Claude-werkafspraken (Claude Code leest hem wel)
+CLAUDE.local.md
+# HD-pack-marker van setup.sh
+.hd-pack
