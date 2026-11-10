@@ -5,6 +5,8 @@
 #   ./setup.sh /pad/naar/cd      of een map met de inhoud van de CD
 #   ./setup.sh                   opnieuw draaien: slaat over wat al klaar is
 #   ./setup.sh --plain ...       zonder kleur en emoji
+#   ./setup.sh --ja ...          ja op elke vraag (brew-pakketten, alias)
+#   zonder CD-image haalt het script VRACER.iso zelf van archive.org (met sha1-check)
 #
 # Stappen: spelbestanden, Homebrew, submodules, bouwen, HD-pack, app.
 # Het script gooit je ISO nooit weg en zet geen spelbestanden in git.
@@ -21,17 +23,34 @@ BREW_DEPS="cmake ninja pkgconf sdl3 ffmpeg freetype glslang spirv-cross llvm@22 
 # Plus Pillow voor python3 (brew install pillow), gecheckt met een import.
 
 # Overschrijven kan (testen, eigen mirror): VRACER_HD_URL (ook file://...),
-# VRACER_HD_SHA256, VRACER_JOBS (parallelle compileertaken, standaard 2).
+# VRACER_HD_SHA256, VRACER_JOBS (parallelle compileertaken; standaard de performance-cores,
+# hooguit één per 2 GB geheugen).
 HD_URL="${VRACER_HD_URL:-$HD_URL}"
 HD_SHA256="${VRACER_HD_SHA256:-$HD_SHA256}"
-JOBS="${VRACER_JOBS:-2}"
+# Standaard: één taak per performance-core, maar hooguit één per 2 GB geheugen.
+if [ -n "${VRACER_JOBS:-}" ]; then
+  JOBS="$VRACER_JOBS"
+else
+  PCORES="$(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || sysctl -n hw.physicalcpu 2>/dev/null || echo 2)"
+  MEMJOBS=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 4294967296) / 2147483648 ))
+  JOBS=$(( PCORES < MEMJOBS ? PCORES : MEMJOBS ))
+  [ "$JOBS" -ge 1 ] || JOBS=1
+fi
+# De CD-image op archive.org, als je er zelf geen meegeeft.
+ISO_NAME="VRACER.iso"
+ISO_URL="https://archive.org/download/vakantieracerholidayracer/VRACER.iso"
+ISO_SIZE=597082112
+ISO_SHA1="9fc22951338e89fcac173b0912c5e5b7cc0b0f7c"
 
 PLAIN=0
+YES=0
 SRC=""
+DOWNLOADED=0
 for a in "$@"; do
   case "$a" in
     --plain) PLAIN=1 ;;
-    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --ja|--yes|-y) YES=1 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) SRC="$a" ;;
   esac
 done
@@ -64,6 +83,28 @@ fail() {
   exit 1
 }
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+sha1() { shasum -a 1 "$1" | cut -d' ' -f1; }
+# vraag <tekst>: ja bij --ja, of bij Enter/j in een terminal. Zonder terminal nee.
+vraag() {
+  if [ "$YES" = 1 ]; then e "  ❓" "$1 [J/n] ja (--ja)"; return 0; fi
+  [ -t 0 ] || return 1
+  local p a
+  if [ "$PLAIN" = 1 ]; then p="$1 [J/n] "; else p="  ❓ $1 [J/n] "; fi
+  read -r -p "$p" a || return 1
+  case "$a" in ""|j|J|ja|Ja|JA|y|Y|yes) return 0 ;; *) return 1 ;; esac
+}
+# Voortgangsbalk van curl alleen in een terminal; in een log wordt hij één enorme regel.
+CURL_PROGRESS=(-#)
+{ [ -t 1 ] && [ -t 2 ]; } || CURL_PROGRESS=(-sS)
+# CD-image alleen-lezen openen: diskutil image (nieuw), anders hdiutil (macOS 27 waarschuwt daarvoor).
+attach_ro() {
+  if diskutil image attach --help >/dev/null 2>&1 \
+     && diskutil image attach --readOnly --nobrowse --mountPoint "$2" "$1" >/dev/null 2>&1; then
+    return 0
+  fi
+  hdiutil attach -readonly -nobrowse -noverify -mountpoint "$2" "$1" >/dev/null
+}
+detach_mnt() { diskutil eject "$1" >/dev/null 2>&1 || hdiutil detach -force -quiet "$1" 2>/dev/null || true; }
 
 echo
 e "🏖️ 🚘" "${B}Vakantie Racer Revived · macOS (Apple Silicon)${N}"
@@ -76,18 +117,34 @@ if have_game; then
   skip "iso/ is er al en klopt"
 else
   if [ -z "$SRC" ]; then
-    fail "Geen spelbestanden gevonden." \
-      "Geef de ISO van je eigen CD mee: ./setup.sh ~/Downloads/VRACER.iso" \
-      "Of een map met de inhoud van de CD: ./setup.sh /Volumes/VRACER"
+    # Geen image meegegeven: zelf ophalen van archive.org, met sha1-check.
+    mkdir -p dl
+    SRC="$ROOT/dl/$ISO_NAME"
+    if [ -f "$SRC" ] && [ "$(stat -f %z "$SRC")" = "$ISO_SIZE" ] && [ "$(sha1 "$SRC")" = "$ISO_SHA1" ]; then
+      skip "dl/$ISO_NAME is er al en klopt"
+    else
+      info "Geen CD-image meegegeven: ik haal $ISO_NAME van archive.org (597 MB)..."
+      rm -f "$SRC.part"
+      curl -fL "${CURL_PROGRESS[@]}" -o "$SRC.part" "$ISO_URL" \
+        || { rm -f "$SRC.part"; fail "Downloaden van $ISO_NAME mislukt." "Check je internet en draai ./setup.sh opnieuw." \
+             "Of download hem zelf (zie README) en geef hem mee: ./setup.sh ~/Downloads/$ISO_NAME"; }
+      if [ "$(sha1 "$SRC.part")" != "$ISO_SHA1" ]; then
+        rm -f "$SRC.part"
+        fail "De download klopt niet (sha1 anders)." "Draai ./setup.sh opnieuw, of geef je eigen CD-image mee."
+      fi
+      mv "$SRC.part" "$SRC"
+      ok "$ISO_NAME klopt (sha1)"
+    fi
+    DOWNLOADED=1
   fi
   [ -e "$SRC" ] || fail "Niet gevonden: $SRC" "Check het pad (sleep het bestand in Terminal om het pad te plakken)."
   MNT=""
-  cleanup() { if [ -n "$MNT" ]; then hdiutil detach -quiet "$MNT" 2>/dev/null || hdiutil detach -force -quiet "$MNT" 2>/dev/null || true; rmdir "$MNT" 2>/dev/null || true; fi; }
+  cleanup() { if [ -n "$MNT" ]; then detach_mnt "$MNT"; rmdir "$MNT" 2>/dev/null || true; fi; }
   trap cleanup EXIT
   if [ -f "$SRC" ]; then
     MNT="$(mktemp -d /tmp/vracer-cd.XXXXXX)"
     info "ISO openen (alleen lezen): $(basename "$SRC")"
-    hdiutil attach -readonly -nobrowse -noverify -mountpoint "$MNT" "$SRC" >/dev/null \
+    attach_ro "$SRC" "$MNT" \
       || fail "Deze ISO kan ik niet openen." "Is het echt een .iso van de CD? Probeer hem eerst in Finder te openen."
     CD="$MNT"
   else
@@ -131,11 +188,26 @@ for f in $BREW_DEPS; do
   brew list --versions "$f" >/dev/null 2>&1 || MISSING="$MISSING $f"
 done
 if [ -n "$MISSING" ]; then
-  fail "Er mist gereedschap:$MISSING" "Plak dit in Terminal: brew install$MISSING" "Daarna opnieuw: ./setup.sh"
+  if vraag "Er mist gereedschap:$MISSING. Zal ik het installeren met brew?"; then
+    info "brew install$MISSING (een paar minuten)..."
+    # shellcheck disable=SC2086
+    brew install $MISSING || fail "brew install mislukt." "Zie de uitvoer hierboven." "Daarna opnieuw: ./setup.sh"
+  else
+    fail "Er mist gereedschap:$MISSING" "Plak dit in Terminal: brew install$MISSING" "Daarna opnieuw: ./setup.sh" \
+      "Of laat setup.sh het doen: ./setup.sh --ja"
+  fi
 fi
 PY="$(brew --prefix)/bin/python3"
 [ -x "$PY" ] || PY="$(command -v python3)"
-"$PY" -c "import PIL" 2>/dev/null || fail "Er mist gereedschap: Pillow (plaatjes in Python)." "Plak dit in Terminal: brew install pillow" "Daarna opnieuw: ./setup.sh"
+if ! "$PY" -c "import PIL" 2>/dev/null; then
+  if vraag "Er mist gereedschap: Pillow (plaatjes in Python). Zal ik het installeren met brew?"; then
+    brew install pillow || fail "brew install pillow mislukt." "Zie de uitvoer hierboven."
+    "$PY" -c "import PIL" 2>/dev/null || fail "Pillow is er nog niet voor $PY." "Plak dit in Terminal: brew reinstall pillow"
+  else
+    fail "Er mist gereedschap: Pillow (plaatjes in Python)." "Plak dit in Terminal: brew install pillow" "Daarna opnieuw: ./setup.sh" \
+      "Of laat setup.sh het doen: ./setup.sh --ja"
+  fi
+fi
 # make_app.sh en de tools roepen 'python3' aan: die van Homebrew vooraan.
 export PATH="$(brew --prefix)/bin:$PATH"
 ok "Alles aanwezig"
@@ -156,7 +228,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-step "🔧" 4 "Spelcode omzetten en bouwen" "15-30 min, de eerste keer"
+step "🔧" 4 "Spelcode omzetten en bouwen" "5-15 min, de eerste keer"
 BUILD=out/build/release
 LIFT="$BUILD/swarc/tools/lifter_x86/recomp_lift"
 # CMakeLists.txt kiest zelf external/SwARc en external/Davilex-RED.
@@ -203,7 +275,7 @@ else
   else
     info "Downloaden: $HD_URL"
     rm -f "$ZIP.part"
-    if curl -fL -# -o "$ZIP.part" "$HD_URL"; then
+    if curl -fL "${CURL_PROGRESS[@]}" -o "$ZIP.part" "$HD_URL"; then
       if [ "$(sha "$ZIP.part")" = "$HD_SHA256" ]; then
         mv "$ZIP.part" "$ZIP"; GOT=1
       else
@@ -230,12 +302,33 @@ tools/make_app.sh > out_make_app.log 2>&1 || fail "De app maken mislukt." "Zie o
 [ -x "Vakantie Racer.app/Contents/MacOS/VakantieRacer" ] || fail "De app is er niet." "Zie out_make_app.log."
 ok "\"Vakantie Racer.app\" staat in $ROOT"
 
+# Alias op het bureaublad: één keer gevraagd (build/.alias-gevraagd onthoudt het).
+# Een kopie van de app werkt niet: die zoekt de projectmap naast zichzelf.
+ON_DESK=0
+{ [ -e "$HOME/Desktop/Vakantie Racer" ] || [ -e "$HOME/Desktop/Vakantie Racer.app" ]; } && ON_DESK=1
+if [ "$ON_DESK" = 0 ] && [ ! -f build/.alias-gevraagd ] && { [ "$YES" = 1 ] || [ -t 0 ]; }; then
+  if vraag "Een alias van Vakantie Racer op je bureaublad zetten?"; then
+    if osascript -e "tell application \"Finder\" to make alias file to (POSIX file \"$ROOT/Vakantie Racer.app\") at (path to desktop folder)" >/dev/null 2>&1; then
+      ok "Vakantie Racer staat op je bureaublad"; ON_DESK=1
+    else
+      warn "De alias maken lukte niet. Mag Terminal Finder besturen? (Systeeminstellingen > Privacy en beveiliging > Automatisering)"
+    fi
+  fi
+  mkdir -p build && touch build/.alias-gevraagd
+fi
+
 MIN=$(( ($(date +%s) - START + 59) / 60 ))
 echo
-e "🎉" "${G}${B}Klaar in $MIN min! Dubbelklik op \"Vakantie Racer.app\" (of: open \"Vakantie Racer.app\").${N}"
+if [ "$ON_DESK" = 1 ]; then
+  e "🎉" "${G}${B}Klaar in $MIN min! Dubbelklik op Vakantie Racer op je bureaublad (of: open \"Vakantie Racer.app\").${N}"
+else
+  e "🎉" "${G}${B}Klaar in $MIN min! Dubbelklik op \"Vakantie Racer.app\" (of: open \"Vakantie Racer.app\").${N}"
+fi
 e "  🎮" "In de race: pijltjes sturen, Cmd = turbo, F9 = origineel/HD, Esc = pauze."
 e "  🏕️" "Caravan kiezen en Alles vrij zet je aan in Opties."
-if [ -n "$SRC" ] && [ -f "$SRC" ]; then
+if [ "$DOWNLOADED" = 1 ]; then
+  e "  💾" "dl/$ISO_NAME heb je niet meer nodig, bewaar hem als back-up of gooi hem weg (rm dl/$ISO_NAME)."
+elif [ -n "$SRC" ] && [ -f "$SRC" ]; then
   e "  💾" "$(basename "$SRC") heb je niet meer nodig, bewaar hem als back-up of gooi hem weg."
 else
   e "  💾" "VRACER.iso heb je niet meer nodig, bewaar hem als back-up of gooi hem weg."

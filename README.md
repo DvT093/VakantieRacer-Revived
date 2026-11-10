@@ -5,7 +5,7 @@
 ![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple) ![60 fps](https://img.shields.io/badge/60-fps-brightgreen) ![HD](https://img.shields.io/badge/textures-4x%20HD-orange) ![Menu 4K](https://img.shields.io/badge/menu-4K-yellow) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 > [!IMPORTANT]
-> **Je hebt de ISO van Vakantie Racer nodig.** De game zelf zit niet in deze repo, alleen de port. Download `VRACER.iso` via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) ([direct op Archive.org](https://archive.org/details/vakantieracerholidayracer)) en geef hem aan `setup.sh`.
+> **De game zelf zit niet in deze repo, alleen de port.** `setup.sh` haalt `VRACER.iso` (597 MB) zelf van [Archive.org](https://archive.org/details/vakantieracerholidayracer), te vinden via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/), en checkt hem. Heb je hem al, geef hem dan mee: `./setup.sh ~/Downloads/VRACER.iso`.
 
 ![Het hoofdmenu in 4K](docs/screenshots/menu-hoofdmenu-4k.jpg)
 
@@ -54,18 +54,18 @@ In deze repo zitten **geen spelbestanden**. `setup.sh` maakt alles uit de ISO (z
 ## 🧰 Wat je nodig hebt
 - Een Mac met Apple Silicon (M1 of nieuwer)
 - `VRACER.iso` (zie boven)
-- [Homebrew](https://brew.sh); setup.sh zegt precies wat je nog moet installeren
+- [Homebrew](https://brew.sh); ontbreekt er iets, dan vraagt setup.sh of hij het mag installeren
 
 ## 🚀 Installeren
 
 ```sh
 git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
-cd VakantieRacer-Revived && ./setup.sh ~/Downloads/VRACER.iso
+cd VakantieRacer-Revived && ./setup.sh
 ```
 
-Of zeg in [Claude Code](https://claude.com/claude-code) in deze map: "hier is de ISO, zet het op".
+Of zeg in [Claude Code](https://claude.com/claude-code) in deze map: "zet het op".
 
-setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en haalt het HD-pack op (ca. 590 MB). De eerste keer duurt het 15-30 minuten. Daarna dubbelklik je op **Vakantie Racer.app**. De ISO heb je dan niet meer nodig.
+setup.sh haalt de ISO en de spelbestanden, zet de spelcode om, bouwt de app en haalt het HD-pack op (ca. 590 MB). De eerste keer duurt het 5-15 minuten. Aan het eind vraagt hij of er een alias op je bureaublad moet; daarna dubbelklik je daarop of op **Vakantie Racer.app**. De ISO (in `dl/`) heb je dan niet meer nodig.
 
 ## 🔄 Updaten
 
@@ -75,7 +75,7 @@ Is er een nieuwe versie? Draai in dezelfde map:
 git pull && ./setup.sh
 ```
 
-Of zeg in Claude Code: "update het spel". setup.sh haalt ook de nieuwe SwARc en Davilex-RED op en bouwt alleen wat veranderd is, meestal in een paar minuten. De ISO en het HD-pack heb je niet opnieuw nodig. Alleen als een update de omgezette spelcode raakt, duurt het weer 15-30 minuten.
+Of zeg in Claude Code: "update het spel". setup.sh haalt ook de nieuwe SwARc en Davilex-RED op en bouwt alleen wat veranderd is, meestal in een paar minuten. De ISO en het HD-pack heb je niet opnieuw nodig. Alleen als een update de omgezette spelcode raakt, duurt het weer 5-15 minuten.
 
 ## Toetsen in de race
 
@@ -116,25 +116,25 @@ Davilex' Vakantie Racer (2000) reborn as a native Apple Silicon Mac app: AI-upsc
 Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on Apple Silicon Macs. No Wine, no emulator: the game code from the ISO is recompiled into a real Mac app, with HD textures, a 4K menu, 60 fps and a few mods (bonus cars, trailers, unlock all).
 
 > [!IMPORTANT]
-> **You need the Vakantie Racer ISO.** The game itself is not in this repo, only the port. Download `VRACER.iso` via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) ([directly on Archive.org](https://archive.org/details/vakantieracerholidayracer)) and give it to `setup.sh`.
+> **The game itself is not in this repo, only the port.** `setup.sh` fetches `VRACER.iso` (597 MB) from [Archive.org](https://archive.org/details/vakantieracerholidayracer), listed by [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/), and checks it. Already have it? Pass it along: `./setup.sh ~/Downloads/VRACER.iso`.
 
 This repo contains **no game files**. `setup.sh` builds everything from the ISO (see above). The HD pack (588 MB) is attached to [release hd-v1](https://github.com/DvT093/VakantieRacer-Revived/releases/tag/hd-v1); `setup.sh` downloads it for you.
 
 ## 🧰 What you need
 - A Mac with Apple Silicon (M1 or newer)
 - `VRACER.iso` (see above)
-- [Homebrew](https://brew.sh); setup.sh tells you exactly what to install
+- [Homebrew](https://brew.sh); if something is missing, setup.sh asks whether to install it
 
 ## 🚀 Install
 
 ```sh
 git clone --recursive https://github.com/DvT093/VakantieRacer-Revived.git
-cd VakantieRacer-Revived && ./setup.sh ~/Downloads/VRACER.iso
+cd VakantieRacer-Revived && ./setup.sh
 ```
 
-Or tell [Claude Code](https://claude.com/claude-code) in this folder: "here is the ISO, set it up".
+Or tell [Claude Code](https://claude.com/claude-code) in this folder: "set it up".
 
-The first run takes 15-30 minutes. Then double-click **Vakantie Racer.app**. You no longer need the ISO.
+The first run takes 5-15 minutes. At the end it offers an alias on your desktop; then double-click that or **Vakantie Racer.app**. You no longer need the ISO (in `dl/`).
 
 ## 🔄 Update
 
@@ -144,7 +144,7 @@ Is there a new version? In the same folder, run:
 git pull && ./setup.sh
 ```
 
-Or tell Claude Code: "update the game". setup.sh also fetches the new SwARc and Davilex-RED and only rebuilds what changed, usually in a few minutes. You do not need the ISO or the HD pack again. Only an update that touches the recompiled game code takes 15-30 minutes again.
+Or tell Claude Code: "update the game". setup.sh also fetches the new SwARc and Davilex-RED and only rebuilds what changed, usually in a few minutes. You do not need the ISO or the HD pack again. Only an update that touches the recompiled game code takes 5-15 minutes again.
 
 ## Keys in the race
 Arrows steer and drive, **Cmd** = turbo, **Alt** = handbrake, **Space** = horn, **T** = your character talks, **Esc/P** = pause, **F9** = original or HD, **F10/F11** = anti-aliasing / filtering only, **1/2/U/4** = cameras, hold **3** to look back, **5-0** = camera behind another car.
