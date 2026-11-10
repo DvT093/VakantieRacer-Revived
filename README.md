@@ -1,4 +1,4 @@
-# 🏖️ Vakantie Racer Revived 🚐💨
+# 🏖️ Vakantie Racer Revived
 
 **Davilex' Vakantie Racer (2000), herboren als echte Mac-app voor Apple Silicon. In HD, met een menu in 4K en een caravan achter elke auto.**
 
