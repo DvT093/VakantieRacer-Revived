@@ -7,7 +7,7 @@
 > [!IMPORTANT]
 > **Je hebt de ISO van Vakantie Racer nodig.** De game zelf zit niet in deze repo, alleen de port. Download `VRACER.iso` via [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) ([direct op Archive.org](https://archive.org/details/vakantieracerholidayracer)) en geef hem aan `setup.sh`.
 
-![De tokkie-caravan op de Côte d'Azur, in HD](docs/screenshots/race-caravan-hd.jpg)
+![Het hoofdmenu in 4K](docs/screenshots/menu-hoofdmenu-4k.jpg)
 
 *English below.*
 
@@ -24,6 +24,10 @@
 | 🎮 **60 fps** | Strak, ook op 4K met anti-aliasing |
 
 ## 📸 Screenshots
+
+**In de race, in HD:**
+
+![De tokkie-caravan op de Côte d'Azur, in HD](docs/screenshots/race-caravan-hd.jpg)
 
 **Origineel vs. HD**, met F9 wissel je live:
 
