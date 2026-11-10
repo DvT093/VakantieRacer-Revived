@@ -7,6 +7,13 @@ set -e
 cd "$(dirname "$0")/.."
 APP="Vakantie Racer.app"
 rm -rf "$APP"
+# Het HD-pack van setup.sh (.hd-pack) brengt de mod-plaatjes, de HD-textures
+# en het menu in 4K al mee: dan niets opnieuw maken (zonder het lettertype
+# of de andere CD's zou het slechter worden). VRACER_REBUILD_ASSETS=1 maakt
+# ze toch zelf.
+if [ -f .hd-pack ] && [ -z "$VRACER_REBUILD_ASSETS" ]; then
+  echo "HD-pack aanwezig ($(cat .hd-pack)): plaatjes niet opnieuw gemaakt"
+else
 # Lak van de Z3/DeLorean en de menuplaatjes uit je eigen CD's (mods/*/local).
 python3 -I tools/make_mod_assets.py || echo "let op: make_mod_assets.py mislukt (Pillow nodig)"
 python3 -I tools/make_texture_pack.py || echo "let op: make_texture_pack.py mislukt (race zonder HD-textures)"
@@ -14,6 +21,7 @@ python3 -I tools/make_texture_pack.py || echo "let op: make_texture_pack.py misl
 # alleen wat veranderd is. VRACER_SKIP_UPSCALE=1 slaat dit over.
 if [ -z "$VRACER_SKIP_UPSCALE" ]; then
   python3 -I tools/upscale_menu.py || echo "let op: upscale_menu.py mislukt (menu blijft scherp, maar met de originele plaatjes)"
+fi
 fi
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cat > "$APP/Contents/MacOS/VakantieRacer" <<'SH'
@@ -24,7 +32,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT" || exit 1
 BIN="$ROOT/out/build/release/vracer-menu"
 if [ ! -x "$BIN" ] || [ ! -x "$ROOT/out/build/release/vracer" ]; then
-  osascript -e 'display alert "Vakantie Racer" message "Nog niet gebouwd. Bouw eerst vracer en vracer-menu (zie CLAUDE.md)."'
+  osascript -e 'display alert "Vakantie Racer" message "Nog niet gebouwd. Draai eerst ./setup.sh in de projectmap (zie README.md)."'
   exit 1
 fi
 export XDG_DATA_HOME="$ROOT/userdata"
