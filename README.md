@@ -4,6 +4,9 @@
 
 ![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple) ![60 fps](https://img.shields.io/badge/60-fps-brightgreen) ![HD](https://img.shields.io/badge/textures-4x%20HD-orange) ![Menu 4K](https://img.shields.io/badge/menu-4K-yellow) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
+> [!IMPORTANT]
+> **Je hebt de ISO van Vakantie Racer nodig.** De game zelf zit niet in deze repo, alleen de port. Gebruik de ISO van je eigen CD (v1.00, 30-03-2000). Geen CD meer? Op [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) staat Vakantie Racer, met een link naar een volledige versie op Archive.org.
+
 ![De tokkie-caravan op de Côte d'Azur, in HD](docs/screenshots/race-caravan-hd.jpg)
 
 *English below.*
@@ -90,6 +93,9 @@ setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en 
 Davilex' Vakantie Racer (2000) reborn as a native Apple Silicon Mac app: AI-upscaled HD textures (F9 toggles the original live), a 4K menu, a caravan behind any car, all cars unlocked, a pause menu and a locked 60 fps. Screenshots above.
 
 Vakantie Racer (Davilex, 2000, a Dutch holiday racing game) running natively on Apple Silicon Macs. No Wine, no emulator: the game code from your own CD is recompiled into a real Mac app, with HD textures, a 4K menu, 60 fps and a few mods (bonus cars, trailers, unlock all).
+
+> [!IMPORTANT]
+> **You need the Vakantie Racer ISO.** The game itself is not in this repo, only the port. Use the ISO of your own CD (v1.00, 30 March 2000). No CD? [Nationaal Archief Educatieve Games](https://nationaalarchiefeducatievegames.nl/archief/vakantie-racer/) lists Vakantie Racer with a link to a full version on Archive.org.
 
 This repo contains **no game files**. You need your own CD or ISO of Vakantie Racer (v1.00, 30 March 2000).
 
