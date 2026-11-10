@@ -66,7 +66,7 @@ fail() {
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 
 echo
-e "🏖️" "${B}Vakantie Racer Revived · macOS (Apple Silicon)${N}"
+e "🏖️ 🚘" "${B}Vakantie Racer Revived · macOS (Apple Silicon)${N}"
 e "  " "${D}Van je eigen CD naar een app met HD-textures en een menu in 4K.${N}"
 
 # ---------------------------------------------------------------------------

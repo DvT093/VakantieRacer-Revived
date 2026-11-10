@@ -1,4 +1,4 @@
-# 🏖️ Vakantie Racer Revived
+# 🏖️ Vakantie Racer Revived 🚘
 
 **Davilex' Vakantie Racer (2000), herboren als echte Mac-app voor Apple Silicon. In HD, met een menu in 4K en een caravan achter elke auto.**
 
@@ -85,7 +85,7 @@ setup.sh haalt de spelbestanden van je ISO, zet de spelcode om, bouwt de app en 
 
 ---
 
-# 🏖️ Vakantie Racer Revived (English)
+# 🏖️ Vakantie Racer Revived 🚘 (English)
 
 Davilex' Vakantie Racer (2000) reborn as a native Apple Silicon Mac app: AI-upscaled HD textures (F9 toggles the original live), a 4K menu, a caravan behind any car, all cars unlocked, a pause menu and a locked 60 fps. Screenshots above.
 
