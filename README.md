@@ -15,7 +15,7 @@
 | 🍎 **Native op de Mac** | Geen Wine, geen emulator. De spelcode van je eigen CD wordt omgezet naar een echte Apple Silicon-app |
 | 🎨 **HD-textures** | Elke texture 4x opgeschaald met AI (Real-ESRGAN). Druk **F9** om live te wisselen met het origineel |
 | 🖥️ **Menu in 4K** | Scherp op elk Retina-scherm; de tekst in de plaatjes is opnieuw gezet in het echte lettertype |
-| 🚐 **Caravan kiezen** | Hang de tokkie-caravan, de hippie-caravan of de jetski achter elke auto (vinkje in Opties) |
+| 🏕️ **Caravan kiezen** | Hang de tokkie-caravan, de hippie-caravan of de jetski achter elke auto (vinkje in Opties) |
 | 🏎️ **Alle auto's vrij** | Ook de Ferrari, BMW Z3 en DeLorean |
 | ⏸️ **Pauzemenu** | Esc pauzeert de race in plaats van hem af te breken |
 | 🎮 **60 fps** | Strak, ook op 4K met anti-aliasing |
